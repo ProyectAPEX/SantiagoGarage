@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Manrope:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+:root {
+  --red: #D0021B;
+  --blue: #1B3B8C;
+  --bg: #FAFAF8;
+  --ink: #16181D;
+  --gray: #6B7280;
+  --line: #E8E6E1;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Manrope', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection { background: #D0021B; color: #fff; }
+
+@utility font-display {
+  font-family: 'Archivo', sans-serif;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #D5D2CC; }
