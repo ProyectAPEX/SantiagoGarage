@@ -42,7 +42,7 @@ export default function Inicio() {
           initial={{ scale: 1.12 }}
           animate={{ scale: 1 }}
           transition={{ duration: 8, ease: "easeOut" }}
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1800&q=80')", backgroundSize: "cover", backgroundPosition: "center", filter: "brightness(0.55)" }}
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1800&q=80')", backgroundSize: "cover", backgroundPosition: "70% center", filter: "brightness(0.55)" }}
         />
         <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(22,24,29,0.35) 0%, rgba(22,24,29,0.55) 70%, #FAFAF8 100%)" }} />
 
