@@ -7,8 +7,8 @@ export default function Footer() {
     <footer style={{ background: "#fff", borderTop: "1px solid #E8E6E1" }}>
 
       {/* MAIN GRID */}
-      <div className="px-10 py-16">
-        <div className="max-w-[1100px] mx-auto grid gap-14 text-center items-start" style={{ gridTemplateColumns: "1fr 1fr 1fr", justifyItems: "center" }}>
+      <div className="px-5 sm:px-10 py-14 sm:py-16">
+        <div className="max-w-[1100px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-14 text-center items-start justify-items-center">
 
           {/* BRAND */}
           <div className="flex flex-col items-center">
@@ -103,8 +103,8 @@ export default function Footer() {
       </div>
 
       {/* BOTTOM */}
-      <div className="px-10 py-5" style={{ borderTop: "1px solid #F0EEE9" }}>
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between">
+      <div className="px-5 sm:px-10 py-5" style={{ borderTop: "1px solid #F0EEE9" }}>
+        <div className="max-w-[1200px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center">
           <span className="text-[13px]" style={{ color: "#9CA3AF" }}>
             © 2026 Santiago Garage SPA · Todos los derechos reservados
           </span>

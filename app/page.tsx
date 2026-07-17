@@ -50,7 +50,7 @@ export default function Inicio() {
           variants={heroStagger}
           initial="hidden"
           animate="show"
-          className="relative z-10 px-10 py-24 max-w-[880px] flex flex-col items-center text-center"
+          className="relative z-10 px-5 sm:px-10 py-20 sm:py-24 max-w-[880px] flex flex-col items-center text-center"
         >
           <motion.p variants={heroItem} className="font-display text-[14px] font-medium tracking-[3px] uppercase mb-6" style={{ color: "rgba(255,255,255,0.85)" }}>
             La excelencia en Santiago
@@ -61,14 +61,14 @@ export default function Inicio() {
           <motion.p variants={heroItem} className="text-[18px] font-light mb-10 max-w-[560px]" style={{ color: "rgba(255,255,255,0.8)", lineHeight: 1.7 }}>
             Pasión por la perfección, compromiso con la calidad. Más de 20 años de desabolladura y pintura profesional con tecnología europea.
           </motion.p>
-          <motion.div variants={heroItem} className="flex gap-4 items-center justify-center">
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-              <Link href="/servicios" className="font-display font-semibold text-[15px] px-8 py-4 rounded-full inline-block" style={{ background: "#D0021B", color: "#fff" }}>
+          <motion.div variants={heroItem} className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-center w-full sm:w-auto">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className="w-full sm:w-auto">
+              <Link href="/servicios" className="font-display font-semibold text-[15px] px-8 py-4 rounded-full block sm:inline-block text-center" style={{ background: "#D0021B", color: "#fff" }}>
                 Ver servicios
               </Link>
             </motion.div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }}>
-              <Link href="/contacto" className="font-display font-medium text-[15px] px-8 py-4 rounded-full inline-block transition-colors duration-300 hover:bg-white hover:text-black" style={{ border: "1px solid rgba(255,255,255,0.5)", color: "#fff" }}>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className="w-full sm:w-auto">
+              <Link href="/contacto" className="font-display font-medium text-[15px] px-8 py-4 rounded-full block sm:inline-block text-center transition-colors duration-300 hover:bg-white hover:text-black" style={{ border: "1px solid rgba(255,255,255,0.5)", color: "#fff" }}>
                 Cotizar ahora
               </Link>
             </motion.div>
@@ -86,12 +86,12 @@ export default function Inicio() {
       </section>
 
       {/* STATS */}
-      <div className="px-10 py-16">
-        <div className="grid max-w-[1200px] mx-auto" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
+      <div className="px-5 sm:px-10 py-14 sm:py-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-10 max-w-[1200px] mx-auto">
           {stats.map((s, i) => (
             <Reveal key={i} delay={i * 0.12}>
-              <div className="px-8 py-2 text-center" style={{ borderLeft: i > 0 ? "1px solid #E8E6E1" : "none" }}>
-                <div className="font-display font-bold text-[44px] leading-none mb-2" style={{ color: "#16181D" }}>
+              <div className={`px-4 sm:px-8 py-2 text-center ${i > 0 ? "md:border-l md:border-[#E8E6E1]" : ""}`}>
+                <div className="font-display font-bold text-[36px] sm:text-[44px] leading-none mb-2" style={{ color: "#16181D" }}>
                   <CountUp value={s.n} />
                 </div>
                 <div className="text-[14px]" style={{ color: "#6B7280" }}>{s.l}</div>
@@ -102,7 +102,7 @@ export default function Inicio() {
       </div>
 
       {/* POR QUÉ ELEGIRNOS */}
-      <section className="px-10 py-20" style={{ background: "#F1EFEA" }}>
+      <section className="px-5 sm:px-10 py-16 sm:py-20" style={{ background: "#F1EFEA" }}>
         <div className="max-w-[1200px] mx-auto">
           <Reveal>
             <div className="mb-14 text-center">
@@ -111,11 +111,11 @@ export default function Inicio() {
               </h2>
             </div>
           </Reveal>
-          <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(2,1fr)" }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {razones.map((r, i) => (
               <Reveal key={r.n} delay={(i % 2) * 0.12} y={50}>
                 <Tilt className="h-full">
-                  <div className="p-9 rounded-2xl h-full" style={{ background: r.destacado ? "#16181D" : "#fff", border: r.destacado ? "1px solid #16181D" : "1px solid #E8E6E1", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+                  <div className="p-7 sm:p-9 rounded-2xl h-full" style={{ background: r.destacado ? "#16181D" : "#fff", border: r.destacado ? "1px solid #16181D" : "1px solid #E8E6E1", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
                     <div className="flex items-center gap-3 mb-4">
                       <span className="font-display font-bold text-[15px]" style={{ color: "#D0021B" }}>{r.n}</span>
                       {r.destacado && (
@@ -138,9 +138,9 @@ export default function Inicio() {
       <FormularioContacto />
 
       {/* CTA */}
-      <section className="px-10 py-24">
+      <section className="px-5 sm:px-10 py-16 sm:py-24">
         <Reveal y={60}>
-          <div className="max-w-[1200px] mx-auto rounded-3xl px-14 py-16 flex flex-col items-center text-center gap-9 relative overflow-hidden" style={{ background: "#16181D" }}>
+          <div className="max-w-[1200px] mx-auto rounded-3xl px-7 sm:px-14 py-12 sm:py-16 flex flex-col items-center text-center gap-7 sm:gap-9 relative overflow-hidden" style={{ background: "#16181D" }}>
             {/* Glow decorativo */}
             <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(208,2,27,0.25), transparent 70%)" }} />
             <div>

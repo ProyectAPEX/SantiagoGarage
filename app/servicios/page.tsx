@@ -60,7 +60,7 @@ export default function Servicios() {
   return (
     <>
       {/* HEADER */}
-      <div className="px-10 pb-16" style={{ paddingTop: 156 }}>
+      <div className="px-5 sm:px-10 pb-16" style={{ paddingTop: 132 }}>
         <div className="max-w-[1200px] mx-auto">
           <Reveal y={30}>
             <p className="font-display text-[13px] font-medium tracking-[3px] uppercase mb-4" style={{ color: "#D0021B" }}>
@@ -77,23 +77,22 @@ export default function Servicios() {
       </div>
 
       {/* SERVICES */}
-      <section className="px-10 pb-24">
+      <section className="px-5 sm:px-10 pb-24">
         <div className="max-w-[1200px] mx-auto flex flex-col gap-6">
           {servicios.map((s, i) => {
             const imgLeft = i % 2 === 0;
             return (
               <Reveal key={s.n} x={imgLeft ? -60 : 60} y={0} duration={0.8}>
                 <div
-                  className="group grid overflow-hidden rounded-2xl"
+                  className={`group grid grid-cols-1 overflow-hidden rounded-2xl ${imgLeft ? "md:grid-cols-[440px_1fr]" : "md:grid-cols-[1fr_440px]"}`}
                   style={{
-                    gridTemplateColumns: imgLeft ? "440px 1fr" : "1fr 440px",
                     background: "#fff",
                     border: "1px solid #E8E6E1",
                     minHeight: 320,
                   }}
                 >
                   {/* IMAGE */}
-                  <div className="relative overflow-hidden" style={{ order: imgLeft ? 0 : 1 }}>
+                  <div className={`relative overflow-hidden h-56 sm:h-72 md:h-auto ${imgLeft ? "md:order-1" : "md:order-2"}`}>
                     <motion.img
                       src={s.img}
                       alt={s.name}
@@ -104,12 +103,12 @@ export default function Servicios() {
                   </div>
 
                   {/* CONTENT */}
-                  <div className="flex flex-col justify-center px-12 py-10" style={{ order: imgLeft ? 1 : 0 }}>
+                  <div className={`flex flex-col justify-center px-7 sm:px-12 py-9 sm:py-10 ${imgLeft ? "md:order-2" : "md:order-1"}`}>
                     <div className="flex items-center gap-3 mb-5">
                       <span className="font-display font-bold text-[14px]" style={{ color: "#D0021B" }}>{s.n}</span>
                       <span className="font-display text-[12px] font-medium px-3 py-1 rounded-full" style={{ color: "#1B3B8C", background: "rgba(27,59,140,0.08)" }}>{s.tag}</span>
                     </div>
-                    <h3 className="font-display font-semibold text-[28px] mb-4" style={{ letterSpacing: "-1px" }}>{s.name}</h3>
+                    <h3 className="font-display font-semibold text-[24px] sm:text-[28px] mb-4" style={{ letterSpacing: "-1px" }}>{s.name}</h3>
                     <p className="text-[15px] leading-relaxed mb-8 max-w-[480px]" style={{ color: "#6B7280" }}>{s.desc}</p>
                     <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} className="w-fit">
                       <Link
@@ -129,7 +128,7 @@ export default function Servicios() {
       </section>
 
       {/* PROCESO */}
-      <section className="px-10 py-20" style={{ background: "#F1EFEA" }}>
+      <section className="px-5 sm:px-10 py-16 sm:py-20" style={{ background: "#F1EFEA" }}>
         <div className="max-w-[1200px] mx-auto">
           <Reveal>
             <div className="mb-14">
@@ -141,7 +140,7 @@ export default function Servicios() {
               </h2>
             </div>
           </Reveal>
-          <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {proceso.map((p, i) => (
               <Reveal key={p.n} delay={i * 0.12} y={50}>
                 <Tilt className="h-full">
@@ -158,9 +157,9 @@ export default function Servicios() {
       </section>
 
       {/* CTA */}
-      <section className="px-10 py-24">
+      <section className="px-5 sm:px-10 py-16 sm:py-24">
         <Reveal y={60}>
-          <div className="max-w-[1200px] mx-auto rounded-3xl px-14 py-16 flex items-center justify-between relative overflow-hidden" style={{ background: "#16181D" }}>
+          <div className="max-w-[1200px] mx-auto rounded-3xl px-7 sm:px-14 py-12 sm:py-16 flex flex-col md:flex-row items-center md:justify-between text-center md:text-left gap-7 relative overflow-hidden" style={{ background: "#16181D" }}>
             <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(208,2,27,0.25), transparent 70%)" }} />
             <div>
               <p className="font-display text-[13px] font-medium tracking-[3px] uppercase mb-4" style={{ color: "#D0021B" }}>

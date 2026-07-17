@@ -6,7 +6,7 @@ export default function Contacto() {
   return (
     <>
       {/* HEADER */}
-      <div className="px-10 pb-14" style={{ paddingTop: 156 }}>
+      <div className="px-5 sm:px-10 pb-14" style={{ paddingTop: 132 }}>
         <div className="max-w-[1200px] mx-auto">
           <Reveal y={30}>
             <p className="font-display text-[13px] font-medium tracking-[3px] uppercase mb-4" style={{ color: "#D0021B" }}>
@@ -23,11 +23,11 @@ export default function Contacto() {
       </div>
 
       {/* MAIN */}
-      <section className="px-10 pb-24">
-        <div className="max-w-[1200px] mx-auto grid gap-6" style={{ gridTemplateColumns: "1fr 1.2fr" }}>
+      <section className="px-5 sm:px-10 pb-24">
+        <div className="max-w-[1200px] mx-auto grid gap-6 grid-cols-1 md:grid-cols-[1fr_1.2fr]">
 
           {/* INFO */}
-          <div className="p-10 rounded-2xl flex flex-col justify-between" style={{ background: "#fff", border: "1px solid #E8E6E1" }}>
+          <div className="p-7 sm:p-10 rounded-2xl flex flex-col justify-between" style={{ background: "#fff", border: "1px solid #E8E6E1" }}>
             <div className="flex flex-col gap-7">
               {[
                 { l: "Dirección", v: "Ureta Cox 1038, San Miguel, Santiago", href: "https://maps.google.com/?q=Ureta+Cox+1038+San+Miguel+Santiago" },

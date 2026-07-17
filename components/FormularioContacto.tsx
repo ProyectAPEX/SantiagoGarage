@@ -69,7 +69,7 @@ export default function FormularioContacto() {
   const labelStyle = "font-display font-semibold text-[14px] mb-2 block";
 
   return (
-    <section className="px-10 py-24">
+    <section className="px-5 sm:px-10 py-16 sm:py-24">
       <div className="max-w-[1000px] mx-auto">
         <Reveal>
           <div className="text-center mb-12">
@@ -89,7 +89,7 @@ export default function FormularioContacto() {
             <input id="empresa" name="empresa" type="text" tabIndex={-1} autoComplete="off" value={form.empresa} onChange={handleChange} />
           </div>
 
-          <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
             <div>
               <label htmlFor="nombre" className={labelStyle}>Nombre</label>
               <input id="nombre" name="nombre" type="text" placeholder="Tu nombre" required maxLength={80} value={form.nombre} onChange={handleChange} style={inputStyle} />
