@@ -7,13 +7,15 @@ import Tilt from "@/components/anim/Tilt";
 const servicios = [
   {
     n: "01",
+    slug: "desabolladura",
     name: "Desabolladura de Precisión",
     tag: "Estándar de fábrica",
     desc: "Restauración estructural de paneles preservando las líneas originales del fabricante. Mínimo uso de rellenos, máxima fidelidad estructural. Herramientas de última generación para resultados de fábrica.",
-    img: "https://images.unsplash.com/photo-1645445511761-01834d53205b?w=800&q=80",
+    img: "/desabolladura.jpg",
   },
   {
     n: "02",
+    slug: "pintura",
     name: "Pintura de Alta Gama",
     tag: "PPG & Glasurit",
     desc: "Pintura al horno con secado a temperatura controlada — equipamiento que muy pocos talleres tienen. Laboratorio computarizado de color y aplicación en cabina presurizada con pinturas PPG y Glasurit.",
@@ -21,6 +23,7 @@ const servicios = [
   },
   {
     n: "03",
+    slug: "plasticos",
     name: "Reparación de Plásticos",
     tag: "Recuperación técnica",
     desc: "Soldadura estructural en parachoques y molduras. Evitamos reemplazos costosos recuperando la geometría y resistencia original de cada pieza plástica.",
@@ -28,6 +31,7 @@ const servicios = [
   },
   {
     n: "04",
+    slug: "pulido",
     name: "Pulido Espejo & Detailing",
     tag: "Acabado showroom",
     desc: "Corrección multietapa del barniz. Eliminamos microrayaduras, marcas de pulidor y oxidación superficial. Brillo profundo y nítido con resultado nivel showroom.",
@@ -35,6 +39,7 @@ const servicios = [
   },
   {
     n: "05",
+    slug: "diagnostico",
     name: "Diagnóstico Digital",
     tag: "Seguridad activa",
     desc: "Scanner multimarca post-reparación. Verificamos sensores de proximidad, sistemas ADAS y cámaras. Tu vehículo sale con todos los sistemas electrónicos activos y calibrados.",
@@ -42,6 +47,7 @@ const servicios = [
   },
   {
     n: "06",
+    slug: "siniestros",
     name: "Gestión de Siniestros",
     tag: "Asesoría integral",
     desc: "Asesoría completa para particulares y asegurados. Facilitamos presupuestos, peritajes y coordinación directa con todas las aseguradoras del mercado.",
@@ -84,7 +90,8 @@ export default function Servicios() {
             return (
               <Reveal key={s.n} x={imgLeft ? -60 : 60} y={0} duration={0.8}>
                 <div
-                  className={`group grid grid-cols-1 overflow-hidden rounded-2xl ${imgLeft ? "md:grid-cols-[440px_1fr]" : "md:grid-cols-[1fr_440px]"}`}
+                  id={s.slug}
+                  className={`group grid grid-cols-1 overflow-hidden rounded-2xl scroll-mt-[96px] ${imgLeft ? "md:grid-cols-[440px_1fr]" : "md:grid-cols-[1fr_440px]"}`}
                   style={{
                     background: "#fff",
                     border: "1px solid #E8E6E1",

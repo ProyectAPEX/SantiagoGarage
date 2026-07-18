@@ -53,16 +53,16 @@ export default function Footer() {
             <p className="font-display font-semibold text-[15px] mb-5">Servicios</p>
             <ul className="flex flex-col gap-3">
               {[
-                "Desabolladura de Precisión",
-                "Pintura de Alta Gama",
-                "Reparación de Plásticos",
-                "Pulido & Detailing",
-                "Diagnóstico Digital",
-                "Gestión de Siniestros",
+                { label: "Desabolladura de Precisión", slug: "desabolladura" },
+                { label: "Pintura de Alta Gama", slug: "pintura" },
+                { label: "Reparación de Plásticos", slug: "plasticos" },
+                { label: "Pulido & Detailing", slug: "pulido" },
+                { label: "Diagnóstico Digital", slug: "diagnostico" },
+                { label: "Gestión de Siniestros", slug: "siniestros" },
               ].map((s) => (
-                <li key={s}>
-                  <Link href="/servicios" className="text-[14px] transition-colors hover:text-black" style={{ color: "#6B7280" }}>
-                    {s}
+                <li key={s.slug}>
+                  <Link href={`/servicios#${s.slug}`} className="text-[14px] transition-colors hover:text-black" style={{ color: "#6B7280" }}>
+                    {s.label}
                   </Link>
                 </li>
               ))}
