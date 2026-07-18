@@ -140,14 +140,14 @@ export default function Servicios() {
               </h2>
             </div>
           </Reveal>
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:gap-6 grid-cols-2 lg:grid-cols-4">
             {proceso.map((p, i) => (
               <Reveal key={p.n} delay={i * 0.12} y={50}>
                 <Tilt className="h-full">
-                  <div className="p-8 rounded-2xl h-full" style={{ background: "#fff", border: "1px solid #E8E6E1" }}>
-                    <span className="font-display font-bold text-[30px] block mb-4" style={{ color: "#D0021B" }}>{p.n}</span>
-                    <h3 className="font-display font-semibold text-[18px] mb-2" style={{ letterSpacing: "-0.5px" }}>{p.t}</h3>
-                    <p className="text-[14px] leading-relaxed" style={{ color: "#6B7280" }}>{p.d}</p>
+                  <div className="p-4 sm:p-8 rounded-xl sm:rounded-2xl h-full" style={{ background: "#fff", border: "1px solid #E8E6E1" }}>
+                    <span className="font-display font-bold text-[24px] sm:text-[30px] block mb-3 sm:mb-4" style={{ color: "#D0021B" }}>{p.n}</span>
+                    <h3 className="font-display font-semibold text-[15px] sm:text-[18px] mb-2" style={{ letterSpacing: "-0.5px" }}>{p.t}</h3>
+                    <p className="text-[12.5px] sm:text-[14px] leading-relaxed" style={{ color: "#6B7280" }}>{p.d}</p>
                   </div>
                 </Tilt>
               </Reveal>

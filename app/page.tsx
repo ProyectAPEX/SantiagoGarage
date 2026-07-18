@@ -111,21 +111,21 @@ export default function Inicio() {
               </h2>
             </div>
           </Reveal>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6">
             {razones.map((r, i) => (
               <Reveal key={r.n} delay={(i % 2) * 0.12} y={50}>
                 <Tilt className="h-full">
-                  <div className="p-7 sm:p-9 rounded-2xl h-full" style={{ background: r.destacado ? "#16181D" : "#fff", border: r.destacado ? "1px solid #16181D" : "1px solid #E8E6E1", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
-                    <div className="flex items-center gap-3 mb-4">
-                      <span className="font-display font-bold text-[15px]" style={{ color: "#D0021B" }}>{r.n}</span>
+                  <div className="p-4 sm:p-9 rounded-xl sm:rounded-2xl h-full" style={{ background: r.destacado ? "#16181D" : "#fff", border: r.destacado ? "1px solid #16181D" : "1px solid #E8E6E1", boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+                    <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 flex-wrap">
+                      <span className="font-display font-bold text-[13px] sm:text-[15px]" style={{ color: "#D0021B" }}>{r.n}</span>
                       {r.destacado && (
-                        <span className="font-display text-[11px] font-semibold tracking-[1px] uppercase px-3 py-1 rounded-full" style={{ background: "#D0021B", color: "#fff" }}>
+                        <span className="font-display text-[9px] sm:text-[11px] font-semibold tracking-[1px] uppercase px-2 sm:px-3 py-0.5 sm:py-1 rounded-full" style={{ background: "#D0021B", color: "#fff" }}>
                           Diferencial
                         </span>
                       )}
                     </div>
-                    <h3 className="font-display font-semibold text-[21px] mb-3" style={{ letterSpacing: "-0.5px", color: r.destacado ? "#fff" : "#16181D" }}>{r.t}</h3>
-                    <p className="text-[15px] leading-relaxed" style={{ color: r.destacado ? "rgba(255,255,255,0.65)" : "#6B7280" }}>{r.d}</p>
+                    <h3 className="font-display font-semibold text-[16px] sm:text-[21px] mb-2 sm:mb-3" style={{ letterSpacing: "-0.5px", color: r.destacado ? "#fff" : "#16181D" }}>{r.t}</h3>
+                    <p className="text-[12.5px] sm:text-[15px] leading-relaxed" style={{ color: r.destacado ? "rgba(255,255,255,0.65)" : "#6B7280" }}>{r.d}</p>
                   </div>
                 </Tilt>
               </Reveal>

@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     title: "Santiago Garage — Desabolladura y Pintura Automotriz",
     description:
       "Horno de pintura profesional, materiales de primer nivel y más de 20 años de experiencia en San Miguel, Santiago.",
-    images: [{ url: "/logo-oficial.png", width: 120, height: 120, alt: "Santiago Garage" }],
+    images: [{ url: "/logo.png", width: 1536, height: 1024, alt: "Santiago Garage" }],
   },
   robots: {
     index: true,
@@ -47,7 +47,7 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "AutoBodyShop",
   name: "Santiago Garage",
-  image: `${SITE_URL}/logo-oficial.png`,
+  image: `${SITE_URL}/logo.png`,
   "@id": SITE_URL,
   url: SITE_URL,
   telephone: "+56986111234",
