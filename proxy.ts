@@ -30,15 +30,54 @@ function origenesPermitidos(req: NextRequest): Set<string> {
   return permitidos;
 }
 
+// ——— Acceso privado a /interno (HTTP Basic, validado en el servidor) ———
+function bloquearSiNoAutorizado(req: NextRequest): NextResponse | null {
+  if (!req.nextUrl.pathname.startsWith("/interno")) return null;
+
+  const usuario = process.env.INTERNO_USUARIO;
+  const clave = process.env.INTERNO_CLAVE;
+
+  // Si no hay credenciales configuradas, se niega el acceso (nunca se abre por defecto)
+  if (!usuario || !clave) {
+    return new NextResponse("Acceso interno no configurado.", { status: 503 });
+  }
+
+  const [tipo, valor] = (req.headers.get("authorization") ?? "").split(" ");
+  if (tipo === "Basic" && valor) {
+    try {
+      const i = atob(valor).indexOf(":");
+      if (i > 0) {
+        const u = atob(valor).slice(0, i);
+        const c = atob(valor).slice(i + 1);
+        if (u === usuario && c === clave) return null; // autorizado
+      }
+    } catch {
+      /* cabecera mal formada: cae al 401 */
+    }
+  }
+
+  return new NextResponse("Acceso restringido.", {
+    status: 401,
+    headers: {
+      "WWW-Authenticate": 'Basic realm="Santiago Garage - uso interno"',
+      "Content-Type": "text/plain; charset=utf-8",
+    },
+  });
+}
+
 export default function proxy(req: NextRequest) {
   const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "local";
 
+  // El rate limit va primero: tambien frena intentos de adivinar la clave
   if (excedeLimite(ip)) {
     return new NextResponse("Demasiadas solicitudes. Intenta de nuevo en un minuto.", {
       status: 429,
       headers: { "Retry-After": "60", "Content-Type": "text/plain; charset=utf-8" },
     });
   }
+
+  const noAutorizado = bloquearSiNoAutorizado(req);
+  if (noAutorizado) return noAutorizado;
 
   const permitidos = origenesPermitidos(req);
   const origin = req.headers.get("origin");
