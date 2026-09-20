@@ -10,8 +10,10 @@ import { limpiarTexto, esTelefonoValido } from "@/lib/sanitize";
 
 const vacio = {
   nombre: "",
+  rut: "",
   telefono: "",
   marca: "",
+  modelo: "",
   anio: "",
   patente: "",
   color: "",
@@ -71,9 +73,14 @@ export default function Interno() {
     return {
       numero,
       fecha: new Date().toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" }),
-      cliente: { nombre: limpiarTexto(f.nombre, 80), telefono: limpiarTexto(f.telefono, 17) },
+      cliente: {
+        nombre: limpiarTexto(f.nombre, 80),
+        rut: limpiarTexto(f.rut, 12),
+        telefono: limpiarTexto(f.telefono, 17),
+      },
       vehiculo: {
-        marca: limpiarTexto(f.marca, 60),
+        marca: limpiarTexto(f.marca, 40),
+        modelo: limpiarTexto(f.modelo, 40),
         patente: limpiarTexto(f.patente, 10),
         anio: limpiarTexto(f.anio, 4),
         color: limpiarTexto(f.color, 25),
@@ -184,9 +191,15 @@ export default function Interno() {
             <label className={label} htmlFor="nombre">Nombre</label>
             <input id="nombre" className={input} value={f.nombre} onChange={set("nombre")} placeholder="Nombre del cliente" maxLength={80} />
           </div>
-          <div>
-            <label className={label} htmlFor="telefono">WhatsApp</label>
-            <input id="telefono" className={input} value={f.telefono} onChange={set("telefono")} placeholder="+56 9 ..." inputMode="tel" maxLength={17} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={label} htmlFor="rut">RUT</label>
+              <input id="rut" className={input} value={f.rut} onChange={set("rut")} placeholder="12.345.678-9" maxLength={12} />
+            </div>
+            <div>
+              <label className={label} htmlFor="telefono">WhatsApp</label>
+              <input id="telefono" className={input} value={f.telefono} onChange={set("telefono")} placeholder="+56 9 ..." inputMode="tel" maxLength={17} />
+            </div>
           </div>
         </section>
 
@@ -195,9 +208,15 @@ export default function Interno() {
           <p className="font-display font-bold text-[12px] tracking-[1.5px] uppercase mb-4" style={{ color: "#D0021B" }}>
             Vehículo
           </p>
-          <div className="mb-4">
-            <label className={label} htmlFor="marca">Marca y modelo</label>
-            <input id="marca" className={input} value={f.marca} onChange={set("marca")} placeholder="Ej: Toyota Yaris" maxLength={60} />
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className={label} htmlFor="marca">Marca</label>
+              <input id="marca" className={input} value={f.marca} onChange={set("marca")} placeholder="Hyundai" maxLength={40} />
+            </div>
+            <div>
+              <label className={label} htmlFor="modelo">Modelo</label>
+              <input id="modelo" className={input} value={f.modelo} onChange={set("modelo")} placeholder="Grand i10" maxLength={40} />
+            </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
