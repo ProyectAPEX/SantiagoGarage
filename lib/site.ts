@@ -19,8 +19,25 @@ export const HORARIO_VISIBLE =
   `Lun–Vie ${sinCero(HORARIO.semana.abre)}–${sinCero(HORARIO.semana.cierra)}` +
   ` · Sáb ${sinCero(HORARIO.sabado.abre)}–${sinCero(HORARIO.sabado.cierra)}`;
 
+/** Llamar por telefono */
+export const TEL_URL = `tel:+${TELEFONO_WHATSAPP}`;
+
+/** WhatsApp con el mensaje ya escrito, invitando a mandar la foto del dano */
+export const WA_COTIZAR_URL = `${WA_URL}?text=${encodeURIComponent(
+  "Hola, quiero cotizar una reparación. Les envío una foto del daño."
+)}`;
+
 /**
- * Ruta secreta del panel interno. Debe coincidir con el nombre de la carpeta
- * en app/. NUNCA se nombra en robots.txt: ese archivo es publico.
+ * Valoracion en Google. RESENAS en null hasta tener el numero real:
+ * no se publica una cifra inventada.
  */
-export const RUTA_PANEL = "/gestion-c3da7f";
+export const GOOGLE_NOTA = "4,7";
+export const GOOGLE_RESENAS: number | null = null;
+export const GOOGLE_MAPS_URL =
+  "https://www.google.com/maps/search/?api=1&query=Santiago+Garage+SPA+Desabolladura+Pintura+Automotriz+Ureta+Cox+1038+San+Miguel";
+
+/**
+ * Foto del inicio. PROVISORIA: es una imagen generada, no del taller.
+ * Reemplazar por una foto real del taller o de un trabajo en curso.
+ */
+export const FOTO_INICIO = "/desabolladura.jpg";

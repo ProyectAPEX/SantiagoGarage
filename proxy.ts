@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { RUTA_PANEL } from "@/lib/site";
+import { RUTA_PANEL } from "@/lib/panel";
 
 // ——— Rate limiting en memoria, por IP ———
 // Suficiente para un despliegue de servidor único; si el sitio escala a
