@@ -8,9 +8,9 @@ import CountUp from "@/components/anim/CountUp";
 
 const stats = [
   { n: "20+", l: "Años de experiencia" },
-  { n: "100+", l: "Clientes felices" },
-  { n: "4,5★", l: "De 5 estrellas" },
-  { n: "6", l: "Servicios especializados" },
+  { n: "1.000+", l: "Clientes felices" },
+  { n: "4,7★", l: "De 5 en Google Maps" },
+  { n: "7+", l: "Servicios especializados" },
 ];
 
 const razones = [

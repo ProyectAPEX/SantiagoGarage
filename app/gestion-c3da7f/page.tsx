@@ -7,8 +7,10 @@ import {
   type ItemTrabajo,
 } from "@/lib/presupuesto-pdf";
 import { limpiarTexto, esTelefonoValido } from "@/lib/sanitize";
+import { formatearRut, rutValido, limpiarRut } from "@/lib/rut";
 
 const vacio = {
+  fecha: "",
   nombre: "",
   rut: "",
   telefono: "",
@@ -22,6 +24,19 @@ const vacio = {
   validezDias: "15",
   observaciones: "",
 };
+
+/** Hoy en formato AAAA-MM-DD, en hora local (no UTC). */
+function hoyISO(): string {
+  const d = new Date();
+  const z = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+}
+
+/** "2026-09-21" -> "21-09-2026" */
+function isoAFecha(iso: string): string {
+  const [a, m, d] = iso.split("-");
+  return a && m && d ? `${d}-${m}-${a}` : "";
+}
 
 /** Correlativo guardado en el navegador (comodidad, no dato crítico). */
 function siguienteNumero(): string {
@@ -55,7 +70,10 @@ export default function Interno() {
   const [ocupado, setOcupado] = useState(false);
   const [listo, setListo] = useState("");
 
-  useEffect(() => setNumero(siguienteNumero()), []);
+  useEffect(() => {
+    setNumero(siguienteNumero());
+    setF((prev) => ({ ...prev, fecha: hoyISO() }));
+  }, []);
 
   const set = (k: keyof typeof vacio) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setF({ ...f, [k]: e.target.value });
@@ -72,7 +90,7 @@ export default function Interno() {
   function armarDatos() {
     return {
       numero,
-      fecha: new Date().toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" }),
+      fecha: isoAFecha(f.fecha || hoyISO()),
       cliente: {
         nombre: limpiarTexto(f.nombre, 80),
         rut: limpiarTexto(f.rut, 12),
@@ -97,6 +115,7 @@ export default function Interno() {
 
   function validar(): string {
     if (!f.nombre.trim()) return "Falta el nombre del cliente.";
+    if (f.rut && !rutValido(f.rut)) return "El RUT no es válido: revisa el dígito verificador.";
     if (f.telefono && !esTelefonoValido(f.telefono)) return "El teléfono no parece válido.";
     if (!items.some((i) => i.descripcion.trim())) return "Agrega al menos un trabajo.";
     return "";
@@ -154,7 +173,7 @@ export default function Interno() {
   }
 
   function nuevo() {
-    setF(vacio);
+    setF({ ...vacio, fecha: hoyISO() });
     setItems([{ descripcion: "", precio: 0 }]);
     setNumero(siguienteNumero());
     setError("");
@@ -177,9 +196,19 @@ export default function Interno() {
           <h1 className="font-display font-bold uppercase text-[30px] leading-none" style={{ letterSpacing: "-1px" }}>
             Nuevo presupuesto
           </h1>
-          <p className="text-[14px] mt-2" style={{ color: "#6B7280" }}>
-            N° {numero} · {new Date().toLocaleDateString("es-CL")}
-          </p>
+          <div className="flex items-center justify-between gap-3 mt-3">
+            <p className="text-[14px]" style={{ color: "#6B7280" }}>N° {numero}</p>
+            <label htmlFor="fecha" className="flex items-center gap-2">
+              <span className="font-display font-semibold text-[13px] text-[#16181D]">Fecha</span>
+              <input
+                id="fecha"
+                type="date"
+                value={f.fecha}
+                onChange={set("fecha")}
+                className="rounded-xl px-3 py-2 text-[16px] border border-[#D5D2CC] bg-white text-[#16181D] outline-none focus:border-[#16181D]"
+              />
+            </label>
+          </div>
         </div>
 
         {/* CLIENTE */}
@@ -194,7 +223,19 @@ export default function Interno() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={label} htmlFor="rut">RUT</label>
-              <input id="rut" className={input} value={f.rut} onChange={set("rut")} placeholder="12.345.678-9" maxLength={12} />
+              <input
+                id="rut"
+                className={input}
+                value={f.rut}
+                onChange={(e) => setF({ ...f, rut: formatearRut(e.target.value) })}
+                placeholder="12.345.678-9"
+                maxLength={12}
+                inputMode="text"
+                aria-invalid={limpiarRut(f.rut).length >= 8 && !rutValido(f.rut)}
+              />
+              {limpiarRut(f.rut).length >= 8 && !rutValido(f.rut) && (
+                <p className="text-[12px] mt-1 font-medium" style={{ color: "#D0021B" }}>RUT inválido</p>
+              )}
             </div>
             <div>
               <label className={label} htmlFor="telefono">WhatsApp</label>
@@ -332,7 +373,7 @@ export default function Interno() {
         <div className="max-w-[640px] mx-auto">
           <div className="flex items-baseline justify-between mb-3">
             <span className="font-display font-semibold text-[13px] uppercase tracking-[1px]" style={{ color: "#6B7280" }}>
-              Total
+              Total c/IVA
             </span>
             <span className="font-display font-bold text-[26px] leading-none" style={{ color: "#16181D" }}>
               {formatCLP(totales.total)}

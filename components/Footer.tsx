@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { WA_URL, TELEFONO_VISIBLE, EMAIL_CONTACTO } from "@/lib/site";
+import { WA_URL, TELEFONO_VISIBLE, EMAIL_CONTACTO, HORARIO_VISIBLE } from "@/lib/site";
 
 export default function Footer() {
   return (
@@ -93,7 +93,7 @@ export default function Footer() {
               </li>
               <li>
                 <span className="text-[14px]" style={{ color: "#6B7280" }}>
-                  Lun–Vie 8:00–18:00 · Sáb 9:00–14:00
+                  {HORARIO_VISIBLE}
                 </span>
               </li>
             </ul>

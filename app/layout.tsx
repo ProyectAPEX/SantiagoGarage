@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { HORARIO } from "@/lib/site";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://santiagogarage.cl";
 
@@ -59,8 +60,8 @@ const jsonLd = {
   },
   geo: { "@type": "GeoCoordinates", latitude: -33.4987, longitude: -70.6607 },
   openingHoursSpecification: [
-    { "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "08:00", closes: "18:00" },
-    { "@type": "OpeningHoursSpecification", dayOfWeek: "Saturday", opens: "09:00", closes: "14:00" },
+    { "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: HORARIO.semana.abre, closes: HORARIO.semana.cierra },
+    { "@type": "OpeningHoursSpecification", dayOfWeek: "Saturday", opens: HORARIO.sabado.abre, closes: HORARIO.sabado.cierra },
   ],
   sameAs: [
     "https://www.instagram.com/santiagogarage.cl/",

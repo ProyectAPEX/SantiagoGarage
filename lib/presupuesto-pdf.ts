@@ -32,10 +32,15 @@ export function formatCLP(n: number): string {
   return "$" + Math.round(n || 0).toLocaleString("es-CL");
 }
 
+/** IVA en Chile. Se aplica sobre el neto, despues del descuento. */
+export const TASA_IVA = 0.19;
+
 export function calcularTotales(items: ItemTrabajo[], descuento: number) {
   const subtotal = items.reduce((acc, i) => acc + (Number(i.precio) || 0), 0);
   const desc = Number(descuento) || 0;
-  return { subtotal, descuento: desc, total: Math.max(0, subtotal - desc) };
+  const neto = Math.max(0, subtotal - desc);
+  const iva = Math.round(neto * TASA_IVA);
+  return { subtotal, descuento: desc, neto, iva, total: neto + iva };
 }
 
 async function cargarLogo(): Promise<string | null> {
@@ -152,7 +157,7 @@ export async function generarPresupuestoPDF(p: Presupuesto): Promise<Blob> {
   y += 6;
 
   const yInicioTabla = y;
-  const yMaxTabla = 218; // deja espacio para totales, observaciones y pie
+  const yMaxTabla = 212; // deja espacio para totales, observaciones y pie
 
   const visibles = p.items.filter((i) => i.descripcion.trim() || i.precio);
   const filasDisponibles = Math.floor((yMaxTabla - yInicioTabla) / altoFila);
@@ -189,7 +194,7 @@ export async function generarPresupuestoPDF(p: Presupuesto): Promise<Blob> {
   y = yFinTabla + 2;
 
   // ——— TOTALES ———
-  const { subtotal, descuento, total } = calcularTotales(p.items, p.descuento);
+  const { subtotal, descuento, iva, total } = calcularTotales(p.items, p.descuento);
   const xEtiq = xPrecio - 34;
 
   doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(...GRIS);
@@ -205,6 +210,12 @@ export async function generarPresupuestoPDF(p: Presupuesto): Promise<Blob> {
     doc.text("-" + formatCLP(descuento), W - M - 3, y + 5, { align: "right" });
     y += 5.5;
   }
+
+  doc.setTextColor(...GRIS);
+  doc.text(`IVA (${Math.round(TASA_IVA * 100)}%)`, xEtiq, y + 5);
+  doc.setTextColor(...TINTA);
+  doc.text(formatCLP(iva), W - M - 3, y + 5, { align: "right" });
+  y += 5.5;
 
   y += 1.5;
   doc.setFillColor(...TINTA);

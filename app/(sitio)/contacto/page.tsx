@@ -1,6 +1,6 @@
 "use client";
 import Reveal from "@/components/anim/Reveal";
-import { WA_URL, TELEFONO_VISIBLE, EMAIL_CONTACTO } from "@/lib/site";
+import { WA_URL, TELEFONO_VISIBLE, EMAIL_CONTACTO, HORARIO_VISIBLE } from "@/lib/site";
 
 export default function Contacto() {
   return (
@@ -33,7 +33,7 @@ export default function Contacto() {
                 { l: "Dirección", v: "Ureta Cox 1038, San Miguel, Santiago", href: "https://maps.google.com/?q=Ureta+Cox+1038+San+Miguel+Santiago" },
                 { l: "WhatsApp", v: TELEFONO_VISIBLE, href: WA_URL },
                 { l: "Email", v: EMAIL_CONTACTO, href: `mailto:${EMAIL_CONTACTO}` },
-                { l: "Horario", v: "Lun–Vie 8:00–18:00 · Sáb 9:00–14:00", href: null },
+                { l: "Horario", v: HORARIO_VISIBLE, href: null },
                 { l: "Medios de pago", v: "Débito · Crédito · Transferencia · Efectivo", href: null },
               ].map((item) => (
                 <div key={item.l} className="pb-7" style={{ borderBottom: "1px solid #F0EEE9" }}>

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { HORARIO_VISIBLE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Contacto",
   description:
-    "Cotización sin costo. Estamos en Ureta Cox 1038, San Miguel, Santiago. WhatsApp +56 9 8611 1234. Lun–Vie 8:00–18:00 · Sáb 9:00–14:00. Todos los medios de pago.",
+    `Cotización sin costo. Estamos en Ureta Cox 1038, San Miguel, Santiago. WhatsApp +56 9 8611 1234. ${HORARIO_VISIBLE}. Todos los medios de pago.`,
   alternates: { canonical: "/contacto" },
 };
 
