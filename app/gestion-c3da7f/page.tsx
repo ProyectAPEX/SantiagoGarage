@@ -1,405 +1,142 @@
-"use client";
-import { useState, useEffect } from "react";
-import {
-  generarPresupuestoPDF,
-  calcularTotales,
-  formatCLP,
-  type ItemTrabajo,
-} from "@/lib/presupuesto-pdf";
-import { limpiarTexto, esTelefonoValido } from "@/lib/sanitize";
-import { formatearRut, rutValido, limpiarRut } from "@/lib/rut";
+import Link from "next/link";
+import { exigirAcceso } from "@/lib/acceso-panel";
+import { listarSolicitudes, type Solicitud } from "@/lib/solicitudes";
+import { RUTA_PANEL } from "@/lib/panel";
+import BotonesSolicitud from "./BotonesSolicitud";
 
-const vacio = {
-  fecha: "",
-  nombre: "",
-  rut: "",
-  telefono: "",
-  marca: "",
-  modelo: "",
-  anio: "",
-  patente: "",
-  color: "",
-  descuento: "",
-  plazoDias: "5",
-  validezDias: "15",
-  observaciones: "",
-};
+export const dynamic = "force-dynamic";
 
-/** Hoy en formato AAAA-MM-DD, en hora local (no UTC). */
-function hoyISO(): string {
-  const d = new Date();
-  const z = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
+/** Vercel corre en UTC: sin esto, lo de las 22:00 en Chile saldria como del dia siguiente. */
+const ZONA = "America/Santiago";
+
+function hace(iso: string): string {
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (min < 1) return "recién";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.round(h / 24);
+  if (d < 7) return `hace ${d} día${d === 1 ? "" : "s"}`;
+  return new Date(iso).toLocaleDateString("es-CL", { timeZone: ZONA, day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-/** "2026-09-21" -> "21-09-2026" */
-function isoAFecha(iso: string): string {
-  const [a, m, d] = iso.split("-");
-  return a && m && d ? `${d}-${m}-${a}` : "";
+/** WhatsApp del cliente: numeros chilenos sin 56 se completan. */
+function waDe(telefono: string): string {
+  const d = telefono.replace(/\D/g, "");
+  return `https://wa.me/${d.startsWith("56") ? d : "56" + d}`;
 }
 
-/** Correlativo guardado en el navegador (comodidad, no dato crítico). */
-function siguienteNumero(): string {
-  const anio = new Date().getFullYear();
-  let n = 1;
-  try {
-    const guardado = localStorage.getItem("sg_presupuesto_n");
-    if (guardado) {
-      const [a, c] = guardado.split("-");
-      n = Number(a) === anio ? Number(c) + 1 : 1;
-    }
-  } catch {
-    /* modo privado o storage bloqueado: partimos de 1 */
-  }
-  return `${anio}-${String(n).padStart(4, "0")}`;
-}
+const ETIQUETA = {
+  cotizada: { texto: "Cotizada", fondo: "#E8F5EC", color: "#1B7A3E" },
+  descartada: { texto: "Descartada", fondo: "#F0EEE9", color: "#6B7280" },
+} as const;
 
-function guardarNumero(numero: string) {
-  try {
-    localStorage.setItem("sg_presupuesto_n", numero);
-  } catch {
-    /* sin storage: el correlativo simplemente no persiste */
-  }
-}
-
-export default function Interno() {
-  const [f, setF] = useState(vacio);
-  const [items, setItems] = useState<ItemTrabajo[]>([{ descripcion: "", precio: 0 }]);
-  const [numero, setNumero] = useState("—");
-  const [error, setError] = useState("");
-  const [ocupado, setOcupado] = useState(false);
-  const [listo, setListo] = useState("");
-
-  useEffect(() => {
-    setNumero(siguienteNumero());
-    setF((prev) => ({ ...prev, fecha: hoyISO() }));
-  }, []);
-
-  const set = (k: keyof typeof vacio) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setF({ ...f, [k]: e.target.value });
-
-  const setItem = (i: number, campo: keyof ItemTrabajo, v: string) => {
-    const copia = [...items];
-    if (campo === "precio") copia[i].precio = Number(v.replace(/\D/g, "")) || 0;
-    else copia[i].descripcion = v;
-    setItems(copia);
-  };
-
-  const totales = calcularTotales(items, Number(f.descuento) || 0);
-
-  function armarDatos() {
-    return {
-      numero,
-      fecha: isoAFecha(f.fecha || hoyISO()),
-      cliente: {
-        nombre: limpiarTexto(f.nombre, 80),
-        rut: limpiarTexto(f.rut, 12),
-        telefono: limpiarTexto(f.telefono, 17),
-      },
-      vehiculo: {
-        marca: limpiarTexto(f.marca, 40),
-        modelo: limpiarTexto(f.modelo, 40),
-        patente: limpiarTexto(f.patente, 10),
-        anio: limpiarTexto(f.anio, 4),
-        color: limpiarTexto(f.color, 25),
-      },
-      items: items
-        .filter((i) => i.descripcion.trim() || i.precio)
-        .map((i) => ({ descripcion: limpiarTexto(i.descripcion, 200), precio: i.precio })),
-      descuento: Number(f.descuento) || 0,
-      plazoDias: limpiarTexto(f.plazoDias, 3),
-      validezDias: limpiarTexto(f.validezDias, 3),
-      observaciones: limpiarTexto(f.observaciones, 400),
-    };
-  }
-
-  function validar(): string {
-    if (!f.nombre.trim()) return "Falta el nombre del cliente.";
-    if (f.rut && !rutValido(f.rut)) return "El RUT no es válido: revisa el dígito verificador.";
-    if (f.telefono && !esTelefonoValido(f.telefono)) return "El teléfono no parece válido.";
-    if (!items.some((i) => i.descripcion.trim())) return "Agrega al menos un trabajo.";
-    return "";
-  }
-
-  async function generar(compartir: boolean) {
-    const err = validar();
-    if (err) {
-      setError(err);
-      return;
-    }
-    setError("");
-    setOcupado(true);
-    setListo("");
-    try {
-      const datos = armarDatos();
-      const blob = await generarPresupuestoPDF(datos);
-      const nombreArchivo = `Presupuesto-${datos.numero}-${datos.cliente.nombre.split(" ")[0] || "cliente"}.pdf`;
-      const file = new File([blob], nombreArchivo, { type: "application/pdf" });
-
-      const texto = `Hola ${datos.cliente.nombre}, le enviamos el presupuesto N° ${datos.numero} de Santiago Garage por ${formatCLP(totales.total)}. Cualquier duda quedamos atentos.`;
-
-      const puedeCompartir =
-        compartir &&
-        typeof navigator !== "undefined" &&
-        !!navigator.canShare &&
-        navigator.canShare({ files: [file] });
-
-      if (puedeCompartir) {
-        await navigator.share({ files: [file], title: `Presupuesto ${datos.numero}`, text: texto });
-        setListo("Presupuesto compartido.");
-      } else {
-        // Descarga el PDF y, si hay teléfono, abre WhatsApp para adjuntarlo
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = nombreArchivo;
-        a.click();
-        URL.revokeObjectURL(url);
-        if (compartir) {
-          const tel = datos.cliente.telefono.replace(/\D/g, "");
-          const destino = tel ? `https://wa.me/${tel.startsWith("56") ? tel : "56" + tel}` : "https://wa.me/";
-          window.open(`${destino}?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
-          setListo("PDF descargado. Adjúntalo en el chat de WhatsApp que se abrió.");
-        } else {
-          setListo("PDF descargado.");
-        }
-      }
-      guardarNumero(datos.numero);
-    } catch {
-      setError("No se pudo generar el PDF. Intenta de nuevo.");
-    } finally {
-      setOcupado(false);
-    }
-  }
-
-  function nuevo() {
-    setF({ ...vacio, fecha: hoyISO() });
-    setItems([{ descripcion: "", precio: 0 }]);
-    setNumero(siguienteNumero());
-    setError("");
-    setListo("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  const input =
-    "w-full rounded-xl px-4 py-3.5 text-[16px] outline-none border border-[#D5D2CC] bg-white text-[#16181D] focus:border-[#16181D] transition-colors";
-  const label = "font-display font-semibold text-[13px] mb-1.5 block text-[#16181D]";
-
+function Tarjeta({ s }: { s: Solicitud }) {
+  const nueva = s.estado === "nueva";
+  const etiqueta = s.estado === "nueva" ? null : ETIQUETA[s.estado];
   return (
-    <div className="px-5 pb-40" style={{ paddingTop: 32, background: "#F1EFEA", minHeight: "100vh" }}>
-      <div className="max-w-[640px] mx-auto">
-        {/* Encabezado */}
-        <div className="mb-6">
-          <p className="font-display text-[12px] font-medium tracking-[2px] uppercase mb-1" style={{ color: "#D0021B" }}>
-            Uso interno
-          </p>
-          <h1 className="font-display font-bold uppercase text-[30px] leading-none" style={{ letterSpacing: "-1px" }}>
-            Nuevo presupuesto
-          </h1>
-          <div className="flex items-center justify-between gap-3 mt-3">
-            <p className="text-[14px]" style={{ color: "#6B7280" }}>N° {numero}</p>
-            <label htmlFor="fecha" className="flex items-center gap-2">
-              <span className="font-display font-semibold text-[13px] text-[#16181D]">Fecha</span>
-              <input
-                id="fecha"
-                type="date"
-                value={f.fecha}
-                onChange={set("fecha")}
-                className="rounded-xl px-3 py-2 text-[16px] border border-[#D5D2CC] bg-white text-[#16181D] outline-none focus:border-[#16181D]"
-              />
-            </label>
-          </div>
-        </div>
-
-        {/* CLIENTE */}
-        <section className="rounded-2xl p-5 mb-4 bg-white border border-[#E8E6E1]">
-          <p className="font-display font-bold text-[12px] tracking-[1.5px] uppercase mb-4" style={{ color: "#D0021B" }}>
-            Cliente
-          </p>
-          <div className="mb-4">
-            <label className={label} htmlFor="nombre">Nombre</label>
-            <input id="nombre" className={input} value={f.nombre} onChange={set("nombre")} placeholder="Nombre del cliente" maxLength={80} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={label} htmlFor="rut">RUT</label>
-              <input
-                id="rut"
-                className={input}
-                value={f.rut}
-                onChange={(e) => setF({ ...f, rut: formatearRut(e.target.value) })}
-                placeholder="12.345.678-9"
-                maxLength={12}
-                inputMode="text"
-                aria-invalid={limpiarRut(f.rut).length >= 8 && !rutValido(f.rut)}
-              />
-              {limpiarRut(f.rut).length >= 8 && !rutValido(f.rut) && (
-                <p className="text-[12px] mt-1 font-medium" style={{ color: "#D0021B" }}>RUT inválido</p>
-              )}
-            </div>
-            <div>
-              <label className={label} htmlFor="telefono">WhatsApp</label>
-              <input id="telefono" className={input} value={f.telefono} onChange={set("telefono")} placeholder="+56 9 ..." inputMode="tel" maxLength={17} />
-            </div>
-          </div>
-        </section>
-
-        {/* VEHÍCULO */}
-        <section className="rounded-2xl p-5 mb-4 bg-white border border-[#E8E6E1]">
-          <p className="font-display font-bold text-[12px] tracking-[1.5px] uppercase mb-4" style={{ color: "#D0021B" }}>
-            Vehículo
-          </p>
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div>
-              <label className={label} htmlFor="marca">Marca</label>
-              <input id="marca" className={input} value={f.marca} onChange={set("marca")} placeholder="Hyundai" maxLength={40} />
-            </div>
-            <div>
-              <label className={label} htmlFor="modelo">Modelo</label>
-              <input id="modelo" className={input} value={f.modelo} onChange={set("modelo")} placeholder="Grand i10" maxLength={40} />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className={label} htmlFor="anio">Año</label>
-              <input id="anio" className={input} value={f.anio} onChange={set("anio")} placeholder="2021" inputMode="numeric" maxLength={4} />
-            </div>
-            <div>
-              <label className={label} htmlFor="patente">Patente</label>
-              <input id="patente" className={input} value={f.patente} onChange={set("patente")} placeholder="ABCD12" maxLength={10} style={{ textTransform: "uppercase" }} />
-            </div>
-            <div>
-              <label className={label} htmlFor="color">Color</label>
-              <input id="color" className={input} value={f.color} onChange={set("color")} placeholder="Blanco" maxLength={25} />
-            </div>
-          </div>
-        </section>
-
-        {/* TRABAJOS */}
-        <section className="rounded-2xl p-5 mb-4 bg-white border border-[#E8E6E1]">
-          <p className="font-display font-bold text-[12px] tracking-[1.5px] uppercase mb-4" style={{ color: "#D0021B" }}>
-            Trabajos a realizar
-          </p>
-          {items.map((item, i) => (
-            <div key={i} className="mb-4 pb-4" style={{ borderBottom: i < items.length - 1 ? "1px solid #F0EEE9" : "none" }}>
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <span className="font-display font-bold text-[13px]" style={{ color: "#D0021B" }}>
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                {items.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => setItems(items.filter((_, j) => j !== i))}
-                    className="text-[13px] font-medium px-2 py-1"
-                    style={{ color: "#9CA3AF" }}
-                  >
-                    Quitar
-                  </button>
-                )}
-              </div>
-              <textarea
-                className={input + " mb-3"}
-                rows={2}
-                value={item.descripcion}
-                onChange={(e) => setItem(i, "descripcion", e.target.value)}
-                placeholder="Ej: Desabolladura y pintura de puerta trasera derecha"
-                maxLength={200}
-                style={{ resize: "vertical" }}
-              />
-              <div className="flex items-center gap-2">
-                <span className="font-display font-bold text-[17px]" style={{ color: "#6B7280" }}>$</span>
-                <input
-                  className={input}
-                  value={item.precio ? item.precio.toLocaleString("es-CL") : ""}
-                  onChange={(e) => setItem(i, "precio", e.target.value)}
-                  placeholder="0"
-                  inputMode="numeric"
-                />
-              </div>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => setItems([...items, { descripcion: "", precio: 0 }])}
-            className="font-display font-semibold text-[14px] w-full py-3.5 rounded-xl border border-dashed"
-            style={{ borderColor: "#D5D2CC", color: "#16181D" }}
-          >
-            + Agregar trabajo
-          </button>
-        </section>
-
-        {/* CONDICIONES */}
-        <section className="rounded-2xl p-5 mb-4 bg-white border border-[#E8E6E1]">
-          <p className="font-display font-bold text-[12px] tracking-[1.5px] uppercase mb-4" style={{ color: "#D0021B" }}>
-            Condiciones
-          </p>
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div>
-              <label className={label} htmlFor="descuento">Descuento</label>
-              <input id="descuento" className={input} value={f.descuento} onChange={set("descuento")} placeholder="0" inputMode="numeric" />
-            </div>
-            <div>
-              <label className={label} htmlFor="plazo">Plazo (días)</label>
-              <input id="plazo" className={input} value={f.plazoDias} onChange={set("plazoDias")} inputMode="numeric" maxLength={3} />
-            </div>
-          </div>
-          <div className="mb-4">
-            <label className={label} htmlFor="validez">Validez del presupuesto (días)</label>
-            <input id="validez" className={input} value={f.validezDias} onChange={set("validezDias")} inputMode="numeric" maxLength={3} />
-          </div>
-          <div>
-            <label className={label} htmlFor="obs">Observaciones</label>
-            <textarea id="obs" className={input} rows={3} value={f.observaciones} onChange={set("observaciones")} placeholder="Notas para el cliente (opcional)" maxLength={400} style={{ resize: "vertical" }} />
-          </div>
-        </section>
-
-        {error && (
-          <p role="alert" className="text-center text-[14px] font-semibold mb-3" style={{ color: "#D0021B" }}>
-            {error}
-          </p>
-        )}
-        {listo && (
-          <p role="status" className="text-center text-[14px] font-semibold mb-3" style={{ color: "#16181D" }}>
-            {listo} <button onClick={nuevo} className="underline ml-1">Nuevo presupuesto</button>
-          </p>
-        )}
+    <article className="rounded-2xl p-5 bg-white" style={{ border: nueva ? "1px solid #E8E6E1" : "1px solid #EFEDE8", opacity: nueva ? 1 : 0.85 }}>
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <h3 className="font-display font-bold text-[18px] leading-tight" style={{ color: "#16181D" }}>{s.nombre}</h3>
+        <span className="text-[12px] shrink-0 pt-1" style={{ color: "#9CA3AF" }}>{hace(s.creada)}</span>
       </div>
 
-      {/* BARRA FIJA: total + acciones */}
-      <div
-        className="fixed bottom-0 left-0 right-0 px-5 py-4 z-40"
-        style={{ background: "rgba(255,255,255,0.97)", backdropFilter: "blur(12px)", borderTop: "1px solid #E8E6E1" }}
-      >
-        <div className="max-w-[640px] mx-auto">
-          <div className="flex items-baseline justify-between mb-3">
-            <span className="font-display font-semibold text-[13px] uppercase tracking-[1px]" style={{ color: "#6B7280" }}>
-              Total c/IVA
-            </span>
-            <span className="font-display font-bold text-[26px] leading-none" style={{ color: "#16181D" }}>
-              {formatCLP(totales.total)}
-            </span>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[14px] mb-3" style={{ color: "#4B5058" }}>
+        <a href={`tel:${s.telefono.replace(/[^\d+]/g, "")}`} className="underline underline-offset-2">{s.telefono}</a>
+        {s.vehiculo && <span>{s.vehiculo}</span>}
+        {s.email && <span className="break-all">{s.email}</span>}
+      </div>
+
+      <p className="text-[15px] leading-relaxed mb-4 line-clamp-4" style={{ color: "#16181D" }}>{s.mensaje}</p>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {etiqueta && (
+          <span className="text-[12px] font-semibold px-2.5 py-1 rounded-full mr-1" style={{ background: etiqueta.fondo, color: etiqueta.color }}>
+            {etiqueta.texto}
+          </span>
+        )}
+        <Link
+          href={`${RUTA_PANEL}/presupuesto?id=${s.id}`}
+          className="font-display font-semibold text-[14px] px-4 py-2.5 rounded-lg"
+          style={nueva ? { background: "#D0021B", color: "#fff" } : { color: "#16181D", border: "1px solid #D5D2CC" }}
+        >
+          {nueva ? "Cotizar" : "Cotizar de nuevo"}
+        </Link>
+        <a
+          href={waDe(s.telefono)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-display font-semibold text-[14px] px-4 py-2.5 rounded-lg"
+          style={{ color: "#16181D", border: "1px solid #D5D2CC" }}
+        >
+          WhatsApp
+        </a>
+        <BotonesSolicitud id={s.id} estado={s.estado} />
+      </div>
+    </article>
+  );
+}
+
+export default async function Bandeja() {
+  await exigirAcceso();
+  const solicitudes = await listarSolicitudes();
+  const nuevas = solicitudes?.filter((s) => s.estado === "nueva") ?? [];
+  const atendidas = solicitudes?.filter((s) => s.estado !== "nueva") ?? [];
+  const sinBase = !process.env.SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY;
+
+  return (
+    <div className="px-5 pb-16" style={{ paddingTop: 32, background: "#F1EFEA", minHeight: "100vh" }}>
+      <div className="max-w-[640px] mx-auto">
+        <div className="flex items-end justify-between gap-3 mb-6">
+          <div>
+            <p className="font-display text-[12px] font-medium tracking-[2px] uppercase mb-1" style={{ color: "#D0021B" }}>
+              Uso interno
+            </p>
+            <h1 className="font-display font-bold uppercase text-[30px] leading-none" style={{ letterSpacing: "-1px" }}>
+              Solicitudes
+            </h1>
           </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => generar(false)}
-              disabled={ocupado}
-              className="font-display font-semibold text-[14px] px-4 py-3.5 rounded-full border disabled:opacity-50"
-              style={{ borderColor: "#D5D2CC", color: "#16181D" }}
-            >
-              PDF
-            </button>
-            <button
-              type="button"
-              onClick={() => generar(true)}
-              disabled={ocupado}
-              className="font-display font-semibold text-[15px] flex-1 py-3.5 rounded-full disabled:opacity-60"
-              style={{ background: "#D0021B", color: "#fff" }}
-            >
-              {ocupado ? "Generando..." : "Enviar por WhatsApp"}
-            </button>
-          </div>
+          <Link
+            href={`${RUTA_PANEL}/presupuesto`}
+            className="font-display font-semibold text-[14px] px-4 py-3 rounded-lg shrink-0"
+            style={{ background: "#16181D", color: "#fff" }}
+          >
+            + Presupuesto
+          </Link>
         </div>
+
+        {solicitudes === null ? (
+          <div className="rounded-2xl p-5 bg-white" style={{ border: "1px solid #E8E6E1" }}>
+            <p className="font-display font-bold text-[16px] mb-1" style={{ color: "#16181D" }}>
+              {sinBase ? "Falta conectar la base de datos" : "No se pudieron cargar las solicitudes"}
+            </p>
+            <p className="text-[14px]" style={{ color: "#6B7280" }}>
+              {sinBase
+                ? "Faltan SUPABASE_URL y SUPABASE_SECRET_KEY. Mientras tanto puedes armar presupuestos igual con “+ Presupuesto”."
+                : "La base no respondió. Si lleva días sin uso puede estar pausada: revisa el panel de Supabase."}
+            </p>
+          </div>
+        ) : (
+          <>
+            <h2 className="font-display font-bold text-[13px] tracking-[1.5px] uppercase mb-3" style={{ color: "#16181D" }}>
+              Nuevas <span style={{ color: "#D0021B" }}>({nuevas.length})</span>
+            </h2>
+            {nuevas.length === 0 ? (
+              <p className="text-[15px] mb-8" style={{ color: "#6B7280" }}>No hay solicitudes nuevas. Las que lleguen por la web aparecen acá.</p>
+            ) : (
+              <div className="flex flex-col gap-3 mb-8">{nuevas.map((s) => <Tarjeta key={s.id} s={s} />)}</div>
+            )}
+
+            {atendidas.length > 0 && (
+              <>
+                <h2 className="font-display font-bold text-[13px] tracking-[1.5px] uppercase mb-3" style={{ color: "#6B7280" }}>
+                  Atendidas ({atendidas.length})
+                </h2>
+                <div className="flex flex-col gap-3">{atendidas.map((s) => <Tarjeta key={s.id} s={s} />)}</div>
+              </>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

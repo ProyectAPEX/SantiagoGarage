@@ -1,27 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { RUTA_PANEL } from "@/lib/panel";
+import { RUTA_PANEL, credencialesValidas } from "@/lib/panel";
+import { permitir, ipDesde } from "@/lib/rate-limit";
 
-// ——— Rate limiting en memoria, por IP ———
-// Suficiente para un despliegue de servidor único; si el sitio escala a
-// múltiples instancias, cambiar por un almacén compartido (Redis/Upstash).
-const VENTANA_MS = 60_000;
-const MAX_POR_VENTANA = Number(process.env.RATE_LIMIT_MAX ?? 120);
-const visitas = new Map<string, { count: number; reset: number }>();
-
-function excedeLimite(ip: string): boolean {
-  const ahora = Date.now();
-  // Purga perezosa para que el mapa no crezca sin límite
-  if (visitas.size > 1000) {
-    for (const [k, v] of visitas) if (ahora > v.reset) visitas.delete(k);
-  }
-  const reg = visitas.get(ip);
-  if (!reg || ahora > reg.reset) {
-    visitas.set(ip, { count: 1, reset: ahora + VENTANA_MS });
-    return false;
-  }
-  reg.count++;
-  return reg.count > MAX_POR_VENTANA;
-}
+const MAX_POR_MINUTO = Number(process.env.RATE_LIMIT_MAX ?? 120);
 
 // ——— CORS: solo el propio sitio (y la URL pública en producción) ———
 function origenesPermitidos(req: NextRequest): Set<string> {
@@ -35,27 +16,11 @@ function origenesPermitidos(req: NextRequest): Set<string> {
 function bloquearSiNoAutorizado(req: NextRequest): NextResponse | null {
   if (!req.nextUrl.pathname.startsWith(RUTA_PANEL)) return null;
 
-  const usuario = process.env.PANEL_USUARIO;
-  const clave = process.env.PANEL_CLAVE;
-
   // Si no hay credenciales configuradas, se niega el acceso (nunca se abre por defecto)
-  if (!usuario || !clave) {
+  if (!process.env.PANEL_USUARIO || !process.env.PANEL_CLAVE) {
     return new NextResponse("Panel no configurado.", { status: 503 });
   }
-
-  const [tipo, valor] = (req.headers.get("authorization") ?? "").split(" ");
-  if (tipo === "Basic" && valor) {
-    try {
-      const i = atob(valor).indexOf(":");
-      if (i > 0) {
-        const u = atob(valor).slice(0, i);
-        const c = atob(valor).slice(i + 1);
-        if (u === usuario && c === clave) return null; // autorizado
-      }
-    } catch {
-      /* cabecera mal formada: cae al 401 */
-    }
-  }
+  if (credencialesValidas(req.headers.get("authorization"))) return null;
 
   return new NextResponse("Acceso restringido.", {
     status: 401,
@@ -68,14 +33,24 @@ function bloquearSiNoAutorizado(req: NextRequest): NextResponse | null {
 }
 
 export default function proxy(req: NextRequest) {
-  const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "local";
+  const ip = ipDesde(req.headers);
 
-  // El rate limit va primero: tambien frena intentos de adivinar la clave
-  if (excedeLimite(ip)) {
+  // El límite general va primero: también frena intentos de adivinar la clave
+  if (!permitir(`global:${ip}`, MAX_POR_MINUTO, 60_000)) {
     return new NextResponse("Demasiadas solicitudes. Intenta de nuevo en un minuto.", {
       status: 429,
       headers: { "Retry-After": "60", "Content-Type": "text/plain; charset=utf-8" },
     });
+  }
+
+  // El formulario público escribe en la base: límite mucho más estricto contra spam
+  if (req.nextUrl.pathname === "/api/solicitudes" && req.method === "POST") {
+    if (!permitir(`solicitud:${ip}`, 5, 10 * 60_000)) {
+      return NextResponse.json(
+        { ok: false, error: "Demasiadas solicitudes seguidas. Intenta en unos minutos." },
+        { status: 429, headers: { "Retry-After": "600" } }
+      );
+    }
   }
 
   const noAutorizado = bloquearSiNoAutorizado(req);
@@ -105,9 +80,9 @@ export default function proxy(req: NextRequest) {
   }
 
   const res = NextResponse.next();
-  res.headers.set("X-RateLimit-Limit", String(MAX_POR_VENTANA));
+  res.headers.set("X-RateLimit-Limit", String(MAX_POR_MINUTO));
 
-  // El panel se oculta por cabecera, nunca nombrandolo en robots.txt (es publico)
+  // El panel se oculta por cabecera, nunca nombrándolo en robots.txt (es público)
   if (req.nextUrl.pathname.startsWith(RUTA_PANEL)) {
     res.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
   }

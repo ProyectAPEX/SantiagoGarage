@@ -10,6 +10,7 @@ const COOLDOWN_MS = 20_000;
 export default function FormularioContacto() {
   const [form, setForm] = useState({ nombre: "", telefono: "", email: "", auto: "", mensaje: "", empresa: "" });
   const [error, setError] = useState("");
+  const [recibida, setRecibida] = useState(false);
   const ultimoEnvio = useRef(0);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -52,7 +53,28 @@ export default function FormularioContacto() {
     const texto = encodeURIComponent(
       `Hola, quiero cotizar un servicio.\n\nNombre: ${nombre}\nTeléfono: ${telefono}\nEmail: ${email || "—"}\nAuto: ${auto || "—"}\nMensaje: ${mensaje}`
     );
+
+    // 1) Guardar la solicitud para el admin. Va en paralelo: keepalive la
+    //    termina aunque el cliente salte a WhatsApp. Si falla, el cliente igual
+    //    llega por WhatsApp, asi que no se pierde nadie.
+    const guardado = fetch("/api/solicitudes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nombre, telefono, email, auto, mensaje }),
+      keepalive: true,
+    })
+      .then((r) => r.ok)
+      .catch(() => false);
+
+    // 2) WhatsApp en este mismo toque, como siempre. Si se abriera despues de
+    //    esperar el guardado, el navegador del celular lo bloquearia.
     window.open(`${WA_URL}?text=${texto}`, "_blank", "noopener,noreferrer");
+
+    guardado.then((ok) => {
+      if (!ok) return;
+      setRecibida(true);
+      setForm({ nombre: "", telefono: "", email: "", auto: "", mensaje: "", empresa: "" });
+    });
   };
 
   const inputStyle = {
@@ -60,7 +82,7 @@ export default function FormularioContacto() {
     background: "#fff",
     borderRadius: 12,
     padding: "16px 18px",
-    fontSize: 15,
+    fontSize: 16, // bajo 16px el iPhone hace zoom al tocar el campo
     color: "#16181D",
     outline: "none",
     width: "100%",
@@ -118,6 +140,12 @@ export default function FormularioContacto() {
             </p>
           )}
 
+          {recibida && (
+            <p role="status" className="text-center text-[14px] font-medium" style={{ color: "#16181D" }}>
+              ¡Listo! Recibimos tu solicitud y te responderemos pronto.
+            </p>
+          )}
+
           <div className="flex justify-center mt-2">
             <button
               type="submit"
@@ -127,6 +155,9 @@ export default function FormularioContacto() {
               Enviar
             </button>
           </div>
+          <p className="text-center text-[12px]" style={{ color: "#9CA3AF" }}>
+            Usamos tus datos solo para responder tu solicitud de cotización.
+          </p>
         </form>
       </div>
     </section>
