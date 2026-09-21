@@ -22,22 +22,10 @@ export const HORARIO_VISIBLE =
 /** Llamar por telefono */
 export const TEL_URL = `tel:+${TELEFONO_WHATSAPP}`;
 
-/** WhatsApp con el mensaje ya escrito, invitando a mandar la foto del dano */
-export const WA_COTIZAR_URL = `${WA_URL}?text=${encodeURIComponent(
-  "Hola, quiero cotizar una reparación. Les envío una foto del daño."
-)}`;
-
-/**
- * Valoracion en Google. RESENAS en null hasta tener el numero real:
- * no se publica una cifra inventada.
- */
-export const GOOGLE_NOTA = "4,7";
-export const GOOGLE_RESENAS: number | null = null;
+/** Ficha del taller en Google Maps */
 export const GOOGLE_MAPS_URL =
   "https://www.google.com/maps/search/?api=1&query=Santiago+Garage+SPA+Desabolladura+Pintura+Automotriz+Ureta+Cox+1038+San+Miguel";
 
-/**
- * Foto del inicio. PROVISORIA: es una imagen generada, no del taller.
- * Reemplazar por una foto real del taller o de un trabajo en curso.
- */
-export const FOTO_INICIO = "/desabolladura.jpg";
+/** Foto del inicio (el Camaro blanco). El auto esta a la derecha de la foto. */
+export const FOTO_INICIO = "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=1800&q=80";
+export const FOTO_INICIO_ENCUADRE = "70% center";

@@ -4,31 +4,22 @@ import { motion } from "framer-motion";
 import FormularioContacto from "@/components/FormularioContacto";
 import Reveal from "@/components/anim/Reveal";
 import Tilt from "@/components/anim/Tilt";
-import {
-  WA_COTIZAR_URL,
-  GOOGLE_NOTA,
-  GOOGLE_RESENAS,
-  GOOGLE_MAPS_URL,
-  FOTO_INICIO,
-} from "@/lib/site";
+import CountUp from "@/components/anim/CountUp";
+import { GOOGLE_MAPS_URL, FOTO_INICIO, FOTO_INICIO_ENCUADRE } from "@/lib/site";
 
 const Icono = {
-  estrella: <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>,
-  barras: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 20V14M12 20V8M18 20V4" /></svg>,
-  escudo: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5l8-3z" /></svg>,
-  garantia: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5l8-3z" /><path d="M8.5 12l2.5 2.5 4.5-5" /></svg>,
+  barras: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 20V14M12 20V8M18 20V4" /></svg>,
+  personas: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>,
+  mapa: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>,
+  llave: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>,
 };
 
-/** Sin cantidad de reseñas real, se muestra solo la nota: no se inventa la cifra. */
-const tituloResenas = GOOGLE_RESENAS
-  ? `${GOOGLE_NOTA} · ${GOOGLE_RESENAS} reseñas`
-  : `${GOOGLE_NOTA} en Google`;
-
-const confianza = [
-  { icono: Icono.estrella, titulo: tituloResenas, detalle: GOOGLE_RESENAS ? "en Google Maps" : "calificación de nuestros clientes", href: GOOGLE_MAPS_URL },
-  { icono: Icono.barras, titulo: "+20 años", detalle: "de experiencia en Santiago" },
-  { icono: Icono.escudo, titulo: "Todas las aseguradoras", detalle: "gestión directa de siniestros" },
-  { icono: Icono.garantia, titulo: "Garantía escrita", detalle: "en cada reparación" },
+/** Los mismos numeros que tenia el sitio, ahora en la barra oscura */
+const stats = [
+  { n: "20+", l: "Años de experiencia", icono: Icono.barras },
+  { n: "1.000+", l: "Clientes felices", icono: Icono.personas },
+  { n: "4,7★", l: "De 5 en Google Maps", icono: Icono.mapa, href: GOOGLE_MAPS_URL },
+  { n: "7+", l: "Servicios especializados", icono: Icono.llave },
 ];
 
 /** Bordes de la barra: 2x2 en movil, 4 en fila desde lg */
@@ -72,43 +63,40 @@ export default function Inicio() {
         <div className="flex items-center px-5 sm:px-10 lg:px-12 py-14 sm:py-20" style={{ background: "#F1EFEA" }}>
           <motion.div variants={heroStagger} initial="hidden" animate="show" className="max-w-[600px]">
             <motion.p variants={heroItem} className="font-display text-[12px] sm:text-[13px] font-bold tracking-[2.5px] uppercase mb-5" style={{ color: "#D0021B" }}>
-              Taller en San Miguel, Santiago
+              La excelencia en Santiago
             </motion.p>
             <motion.h1
               variants={heroTitulo}
-              className="font-condensed uppercase mb-6 text-[length:clamp(38px,10.5vw,54px)] lg:text-[length:clamp(36px,calc(4.7vw_-_10px),56px)]"
+              className="font-condensed uppercase mb-6 text-[length:clamp(34px,10vw,56px)] lg:text-[length:clamp(40px,calc(5.6vw_-_12px),66px)]"
               style={{ fontWeight: 800, lineHeight: 0.98, letterSpacing: "-0.5px", color: "#16181D" }}
             >
-              Desabolladura y pintura automotriz en San Miguel
+              Restauramos el<br />orgullo de conducir
             </motion.h1>
             <motion.p variants={heroItem} className="text-[16px] sm:text-[17px] mb-8" style={{ color: "#4B5058", lineHeight: 1.65 }}>
-              Restauramos el orgullo de conducir. Tecnología europea, materiales PPG y Glasurit, y más de 20 años de oficio reparando vehículos en Santiago.
+              Pasión por la perfección, compromiso con la calidad. Más de 20 años de desabolladura y pintura profesional con tecnología europea.
             </motion.p>
             <motion.div variants={heroItem} className="flex flex-col sm:flex-row gap-3">
-              <motion.a
-                href={WA_COTIZAR_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center justify-center gap-2.5 font-display font-semibold text-[15px] px-7 py-4 rounded-lg"
-                style={{ background: "#D0021B", color: "#fff" }}
-              >
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.07-.3-.15-1.26-.46-2.39-1.47-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.91-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.06 2.87 1.21 3.07.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35M12.05 21.79h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.88 9.89-9.88 2.64 0 5.12 1.03 6.99 2.9a9.83 9.83 0 0 1 2.89 6.99c0 5.45-4.44 9.88-9.88 9.88m8.41-18.3A11.82 11.82 0 0 0 12.05 0C5.5 0 .16 5.34.16 11.89c0 2.1.55 4.14 1.59 5.95L.06 24l6.3-1.65a11.88 11.88 0 0 0 5.68 1.45h.01c6.55 0 11.89-5.34 11.89-11.89a11.82 11.82 0 0 0-3.48-8.41z" /></svg>
-                Cotizar por WhatsApp
-              </motion.a>
               <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
                 <Link
                   href="/servicios"
-                  className="flex items-center justify-center font-display font-semibold text-[15px] px-7 py-4 rounded-lg transition-colors hover:bg-[#16181D] hover:text-white"
-                  style={{ border: "2px solid #16181D", color: "#16181D" }}
+                  className="flex items-center justify-center font-display font-semibold text-[15px] px-7 py-4 rounded-lg"
+                  style={{ background: "#D0021B", color: "#fff" }}
                 >
                   Ver servicios
                 </Link>
               </motion.div>
+              <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
+                <Link
+                  href="/contacto"
+                  className="flex items-center justify-center font-display font-semibold text-[15px] px-7 py-4 rounded-lg transition-colors hover:bg-[#16181D] hover:text-white"
+                  style={{ border: "2px solid #16181D", color: "#16181D" }}
+                >
+                  Cotizar ahora
+                </Link>
+              </motion.div>
             </motion.div>
             <motion.p variants={heroItem} className="text-[13px] mt-5 leading-relaxed" style={{ color: "#6B7280" }}>
-              Respuesta en menos de 24 horas · Cotización sin costo · Envíanos una foto del daño
+              Cotización sin costo · Respondemos en menos de 24 horas · Trabajamos con todas las aseguradoras del mercado
             </motion.p>
           </motion.div>
         </div>
@@ -117,8 +105,9 @@ export default function Inicio() {
         <div className="relative min-h-[300px] sm:min-h-[440px] lg:min-h-0 overflow-hidden" style={{ background: "#D9D2C3" }}>
           <motion.img
             src={FOTO_INICIO}
-            alt="Reparación de desabolladura en curso"
+            alt="Auto deportivo blanco en el taller"
             className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: FOTO_INICIO_ENCUADRE }}
             initial={{ scale: 1.08 }}
             animate={{ scale: 1 }}
             transition={{ duration: 6, ease: "easeOut" }}
@@ -126,22 +115,22 @@ export default function Inicio() {
         </div>
       </section>
 
-      {/* BARRA DE CONFIANZA */}
-      <section style={{ background: "#16181D" }} aria-label="Por qué confiar en nosotros">
+      {/* NUMEROS: los mismos de antes, en la barra oscura del mockup */}
+      <section style={{ background: "#16181D" }} aria-label="Santiago Garage en números">
         <div className="max-w-[1280px] mx-auto grid grid-cols-2 lg:grid-cols-4">
-          {confianza.map((c, i) => {
+          {stats.map((s, i) => {
             const contenido = (
               <>
-                <span className="mt-0.5 shrink-0" style={{ color: "#D0021B" }}>{c.icono}</span>
+                <span className="mt-1 shrink-0" style={{ color: "#D0021B" }}>{s.icono}</span>
                 <span>
-                  <span className="block font-display font-bold text-[14px] sm:text-[15px] text-white leading-tight">{c.titulo}</span>
-                  <span className="block text-[12px] sm:text-[12.5px] mt-0.5 leading-snug" style={{ color: "rgba(255,255,255,0.55)" }}>{c.detalle}</span>
+                  <span className="block font-display font-bold text-[20px] sm:text-[22px] text-white leading-tight"><CountUp value={s.n} /></span>
+                  <span className="block text-[12px] sm:text-[13px] mt-0.5 leading-snug" style={{ color: "rgba(255,255,255,0.6)" }}>{s.l}</span>
                 </span>
               </>
             );
             const clase = `flex items-start gap-3 px-5 sm:px-8 py-5 sm:py-6 border-white/10 ${bordeConfianza[i]}`;
-            return c.href ? (
-              <a key={i} href={c.href} target="_blank" rel="noopener noreferrer" className={clase + " transition-colors hover:bg-white/5"}>{contenido}</a>
+            return s.href ? (
+              <a key={i} href={s.href} target="_blank" rel="noopener noreferrer" className={clase + " transition-colors hover:bg-white/5"}>{contenido}</a>
             ) : (
               <div key={i} className={clase}>{contenido}</div>
             );
