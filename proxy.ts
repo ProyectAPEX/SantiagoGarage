@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { RUTA_PANEL } from "@/lib/site";
 
 // ——— Rate limiting en memoria, por IP ———
 // Suficiente para un despliegue de servidor único; si el sitio escala a
@@ -30,16 +31,16 @@ function origenesPermitidos(req: NextRequest): Set<string> {
   return permitidos;
 }
 
-// ——— Acceso privado a /interno (HTTP Basic, validado en el servidor) ———
+// ——— Acceso privado al panel (ruta secreta + HTTP Basic en el servidor) ———
 function bloquearSiNoAutorizado(req: NextRequest): NextResponse | null {
-  if (!req.nextUrl.pathname.startsWith("/interno")) return null;
+  if (!req.nextUrl.pathname.startsWith(RUTA_PANEL)) return null;
 
-  const usuario = process.env.INTERNO_USUARIO;
-  const clave = process.env.INTERNO_CLAVE;
+  const usuario = process.env.PANEL_USUARIO;
+  const clave = process.env.PANEL_CLAVE;
 
   // Si no hay credenciales configuradas, se niega el acceso (nunca se abre por defecto)
   if (!usuario || !clave) {
-    return new NextResponse("Acceso interno no configurado.", { status: 503 });
+    return new NextResponse("Panel no configurado.", { status: 503 });
   }
 
   const [tipo, valor] = (req.headers.get("authorization") ?? "").split(" ");
@@ -61,6 +62,7 @@ function bloquearSiNoAutorizado(req: NextRequest): NextResponse | null {
     headers: {
       "WWW-Authenticate": 'Basic realm="Santiago Garage - uso interno"',
       "Content-Type": "text/plain; charset=utf-8",
+      "X-Robots-Tag": "noindex, nofollow",
     },
   });
 }
@@ -104,6 +106,11 @@ export default function proxy(req: NextRequest) {
 
   const res = NextResponse.next();
   res.headers.set("X-RateLimit-Limit", String(MAX_POR_VENTANA));
+
+  // El panel se oculta por cabecera, nunca nombrandolo en robots.txt (es publico)
+  if (req.nextUrl.pathname.startsWith(RUTA_PANEL)) {
+    res.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+  }
   if (origin && permitidos.has(origin)) {
     res.headers.set("Access-Control-Allow-Origin", origin);
     res.headers.set("Vary", "Origin");
