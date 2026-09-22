@@ -209,6 +209,19 @@ export default function FormularioPresupuesto({
     setError("");
     setOcupado(true);
     setListo("");
+
+    // La ventana se abre en el toque mismo, todavia en blanco: si se abriera
+    // despues de generar el PDF, el navegador del celular la bloquearia por
+    // emergente. Al final se le pone la direccion del chat.
+    const ventana = modo === "whatsapp" ? window.open("", "_blank") : null;
+    if (ventana) {
+      try {
+        ventana.opener = null;
+      } catch {
+        /* algunos navegadores no dejan tocarlo: no pasa nada */
+      }
+    }
+
     try {
       const datos = armarDatos();
       const blob = await generarPresupuestoPDF(datos);
@@ -239,12 +252,10 @@ export default function FormularioPresupuesto({
         // detalle ya escrito. El PDF queda descargado para adjuntarlo con el
         // clip: WhatsApp no deja que una pagina web lo adjunte sola.
         descargar(blob, nombreArchivo);
-        window.open(
-          `https://wa.me/${numeroWhatsApp(f.telefono)}?text=${encodeURIComponent(texto)}`,
-          "_blank",
-          "noopener,noreferrer"
-        );
-        setListo("Se abrió el chat del cliente. Adjunta el PDF con el clip 📎 → Documentos: es el primero de la lista.");
+        const chat = `https://wa.me/${numeroWhatsApp(f.telefono)}?text=${encodeURIComponent(texto)}`;
+        if (ventana) ventana.location.href = chat;
+        else window.open(chat, "_blank", "noopener,noreferrer");
+        setListo("PDF descargado y chat del cliente abierto. Adjúntalo con el clip 📎 → Documentos: es el primero de la lista.");
       } else {
         descargar(blob, nombreArchivo);
         setListo("PDF descargado.");
@@ -255,6 +266,7 @@ export default function FormularioPresupuesto({
         if (ok) setSolicitud(null);
       }
     } catch {
+      ventana?.close(); // no dejar la pestaña en blanco dando vueltas
       setError("No se pudo generar el PDF. Intenta de nuevo.");
     } finally {
       setOcupado(false);
@@ -547,7 +559,7 @@ export default function FormularioPresupuesto({
               className="font-display font-semibold text-[15px] flex-1 py-3.5 rounded-full disabled:opacity-60"
               style={{ background: "#D0021B", color: "#fff" }}
             >
-              {ocupado ? "Generando..." : "Enviar al cliente"}
+              {ocupado ? "Generando..." : "Enviar cotización"}
             </button>
           </div>
           {/* Unico camino en que el PDF viaja como archivo: el chat se elige a mano */}
