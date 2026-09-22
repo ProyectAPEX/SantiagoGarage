@@ -171,9 +171,49 @@ export default function FormularioPresupuesto({
     return "";
   }
 
-  async function generar(compartir: boolean) {
-    const err = validar();
+  /** WhatsApp del cliente en formato internacional: 9 1234 5678 -> 56912345678 */
+  function numeroWhatsApp(telefono: string): string {
+    const d = telefono.replace(/\D/g, "");
+    if (!d) return "";
+    return d.startsWith("56") ? d : "56" + d.replace(/^0+/, "");
+  }
+
+  /**
+   * Mensaje con el detalle del presupuesto. Va el resumen escrito porque
+   * WhatsApp NO permite que una pagina web adjunte el archivo: el PDF se
+   * adjunta a mano en el chat que se abre.
+   */
+  function mensajeWhatsApp(datos: ReturnType<typeof armarDatos>): string {
+    const lineas = datos.items.map((i) => `• ${i.descripcion}${i.precio ? `: ${formatCLP(i.precio)}` : ""}`);
+    const auto = [f.marca, f.modelo, f.anio].filter(Boolean).join(" ");
+    return [
+      `Hola ${datos.cliente.nombre}, le enviamos el presupuesto N° ${datos.numero} de Santiago Garage.`,
+      auto ? `\nVehículo: ${auto}` : "",
+      `\n${lineas.join("\n")}`,
+      `\nTotal con IVA: ${formatCLP(totales.total)}`,
+      datos.validezDias ? `Válido por ${datos.validezDias} días.` : "",
+      `\nLe adjuntamos el detalle en PDF. Cualquier duda quedamos atentos.`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  /** Deja el PDF en el celular o computador del dueño, para adjuntarlo. */
+  function descargar(blob: Blob, nombreArchivo: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombreArchivo;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function generar(modo: "pdf" | "whatsapp" | "compartir") {
+    const err =
+      validar() ||
+      (modo === "whatsapp" && !numeroWhatsApp(f.telefono) ? "Escribe el WhatsApp del cliente para poder enviárselo." : "");
     if (err) {
+      setListo("");
       setError(err);
       return;
     }
@@ -186,39 +226,39 @@ export default function FormularioPresupuesto({
       const nombreArchivo = `Presupuesto-${datos.numero}-${datos.cliente.nombre.split(" ")[0] || "cliente"}.pdf`;
       const file = new File([blob], nombreArchivo, { type: "application/pdf" });
 
-      const texto = `Hola ${datos.cliente.nombre}, le enviamos el presupuesto N° ${datos.numero} de Santiago Garage por ${formatCLP(totales.total)}. Cualquier duda quedamos atentos.`;
+      const texto = mensajeWhatsApp(datos);
 
-      const puedeCompartir =
-        compartir &&
-        typeof navigator !== "undefined" &&
-        !!navigator.canShare &&
-        navigator.canShare({ files: [file] });
-
-      if (puedeCompartir) {
-        try {
-          await navigator.share({ files: [file], title: `Presupuesto ${datos.numero}`, text: texto });
-        } catch (e) {
-          // El usuario cerro el menu sin mandar: no es error y no se marca como cotizada
-          if (e instanceof DOMException && e.name === "AbortError") return;
-          throw e;
-        }
-        setListo("Presupuesto compartido.");
-      } else {
-        // Descarga el PDF y, si hay teléfono, abre WhatsApp para adjuntarlo
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = nombreArchivo;
-        a.click();
-        URL.revokeObjectURL(url);
-        if (compartir) {
-          const tel = datos.cliente.telefono.replace(/\D/g, "");
-          const destino = tel ? `https://wa.me/${tel.startsWith("56") ? tel : "56" + tel}` : "https://wa.me/";
-          window.open(`${destino}?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
-          setListo("PDF descargado. Adjúntalo en el chat de WhatsApp que se abrió.");
+      if (modo === "compartir") {
+        // Menu de compartir del telefono: manda el archivo, pero el chat lo
+        // elige el dueño a mano. Por eso no es el boton principal.
+        const puedeCompartir = typeof navigator !== "undefined" && !!navigator.canShare && navigator.canShare({ files: [file] });
+        if (!puedeCompartir) {
+          descargar(blob, nombreArchivo);
+          setListo("Este navegador no permite compartir archivos. El PDF quedó descargado.");
         } else {
-          setListo("PDF descargado.");
+          try {
+            await navigator.share({ files: [file], title: `Presupuesto ${datos.numero}`, text: texto });
+          } catch (e) {
+            // Cerro el menu sin mandar: no es error
+            if (e instanceof DOMException && e.name === "AbortError") return;
+            throw e;
+          }
+          setListo("Presupuesto compartido.");
         }
+      } else if (modo === "whatsapp") {
+        // El chat se abre con el numero escrito en el formulario, con el
+        // detalle ya escrito. El PDF queda descargado para adjuntarlo con el
+        // clip: WhatsApp no deja que una pagina web lo adjunte sola.
+        descargar(blob, nombreArchivo);
+        window.open(
+          `https://wa.me/${numeroWhatsApp(f.telefono)}?text=${encodeURIComponent(texto)}`,
+          "_blank",
+          "noopener,noreferrer"
+        );
+        setListo("Se abrió el chat del cliente con el detalle. Adjunta el PDF con el clip 📎 → Documentos.");
+      } else {
+        descargar(blob, nombreArchivo);
+        setListo("PDF descargado.");
       }
       guardarNumero(datos.numero);
       if (solicitud) {
@@ -504,7 +544,7 @@ export default function FormularioPresupuesto({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => generar(false)}
+              onClick={() => generar("pdf")}
               disabled={ocupado}
               className="font-display font-semibold text-[14px] px-4 py-3.5 rounded-full border disabled:opacity-50"
               style={{ borderColor: "#D5D2CC", color: "#16181D" }}
@@ -513,14 +553,24 @@ export default function FormularioPresupuesto({
             </button>
             <button
               type="button"
-              onClick={() => generar(true)}
+              onClick={() => generar("whatsapp")}
               disabled={ocupado}
               className="font-display font-semibold text-[15px] flex-1 py-3.5 rounded-full disabled:opacity-60"
               style={{ background: "#D0021B", color: "#fff" }}
             >
-              {ocupado ? "Generando..." : "Enviar por WhatsApp"}
+              {ocupado ? "Generando..." : "Enviar al cliente"}
             </button>
           </div>
+          {/* Para elegir el chat a mano (o mandarlo por otra app) */}
+          <button
+            type="button"
+            onClick={() => generar("compartir")}
+            disabled={ocupado}
+            className="w-full mt-2 py-2 font-display font-semibold text-[13px] disabled:opacity-50"
+            style={{ color: "#6B7280" }}
+          >
+            Compartir el PDF a otro chat
+          </button>
         </div>
       </div>
     </div>
