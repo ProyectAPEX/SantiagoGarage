@@ -12,7 +12,7 @@ import { marcarCotizada } from "../acciones";
 import BotonSalir from "../BotonSalir";
 import CampoSugerido from "./CampoSugerido";
 import { buscarMarcas, buscarModelos, buscarColores } from "@/lib/vehiculos";
-import { SERVICIOS, PIEZAS } from "@/lib/trabajos";
+import { SERVICIOS } from "@/lib/trabajos";
 
 /** Datos que llegan de una solicitud de la web, para precargar el formulario. */
 export type DatosIniciales = {
@@ -133,13 +133,6 @@ export default function FormularioPresupuesto({
     }
     copia[i] = { ...copia[i], servicio, descripcion: nueva.slice(0, 200) };
     setItems(copia);
-  }
-
-  /** Agrega la pieza al final de la descripción, con un espacio si hace falta. */
-  function agregarPieza(i: number, pieza: string) {
-    const actual = items[i].descripcion.trim();
-    const nueva = actual ? `${actual} ${pieza}` : pieza.charAt(0).toUpperCase() + pieza.slice(1);
-    setItem(i, "descripcion", nueva.slice(0, 200));
   }
 
   const totales = calcularTotales(items, Number(f.descuento) || 0);
@@ -427,7 +420,7 @@ export default function FormularioPresupuesto({
               <label className={label} htmlFor={`detalle-${i}`}>Detalle</label>
               <textarea
                 id={`detalle-${i}`}
-                className={input}
+                className={input + " mb-3"}
                 rows={2}
                 value={item.descripcion}
                 onChange={(e) => setItem(i, "descripcion", e.target.value)}
@@ -435,22 +428,6 @@ export default function FormularioPresupuesto({
                 maxLength={200}
                 style={{ resize: "vertical" }}
               />
-
-              {/* Piezas frecuentes: se agregan al final del detalle */}
-              {/* scrollbarWidth: la fila se corre al lado sin mostrar la barra */}
-              <div className="flex gap-2 overflow-x-auto py-2 mb-2 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
-                {PIEZAS.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => agregarPieza(i, p)}
-                    className="shrink-0 rounded-full px-3 py-2 text-[13px] whitespace-nowrap"
-                    style={{ border: "1px solid #D5D2CC", color: "#4B5058", background: "#fff" }}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
               <div className="flex items-center gap-2">
                 <span className="font-display font-bold text-[17px]" style={{ color: "#6B7280" }}>$</span>
                 <input

@@ -33,7 +33,8 @@ export default function CampoSugerido({
   const [indice, setIndice] = useState(-1);
   const listaId = useId();
 
-  const sugerencias = abierto ? buscar(valor) : [];
+  // Solo al escribir: entrar al campo no despliega nada
+  const sugerencias = abierto && valor.trim() ? buscar(valor) : [];
   const visible = abierto && sugerencias.length > 0;
 
   function elegir(s: Sugerencia) {
@@ -75,7 +76,6 @@ export default function CampoSugerido({
           setAbierto(true);
           setIndice(-1);
         }}
-        onFocus={() => setAbierto(true)}
         onBlur={() => {
           setAbierto(false);
           setIndice(-1);

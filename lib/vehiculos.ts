@@ -75,11 +75,11 @@ function normalizar(texto: string): string {
 /**
  * Ordena por que tan al principio calza lo escrito: primero lo que empieza
  * igual, despues lo que tiene una palabra que empieza igual, al final lo que
- * solo lo contiene. Sin texto, devuelve la lista completa.
+ * solo lo contiene. Sin texto no sugiere nada: la lista aparece al escribir.
  */
 function filtrar(opciones: Sugerencia[], texto: string, tope = 8): Sugerencia[] {
   const q = normalizar(texto);
-  if (!q) return opciones.slice(0, tope);
+  if (!q) return [];
   const puntaje = (s: Sugerencia) => {
     const n = normalizar(s.texto);
     if (n.startsWith(q)) return 0;
@@ -107,7 +107,6 @@ export function buscarMarcas(texto: string): Sugerencia[] {
 export function buscarModelos(marca: string, texto: string): Sugerencia[] {
   const exacta = listaMarcas.find((m) => normalizar(m) === normalizar(marca));
   if (exacta) return filtrar(MARCAS[exacta].map((mo) => ({ texto: mo })), texto);
-  if (normalizar(texto).length < 2) return [];
   const todos = listaMarcas.flatMap((m) => MARCAS[m].map((mo) => ({ texto: mo, detalle: m })));
   return filtrar(todos, texto);
 }
