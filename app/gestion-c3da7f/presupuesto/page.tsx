@@ -1,5 +1,6 @@
 import { exigirAcceso } from "@/lib/acceso-panel";
 import { obtenerSolicitud } from "@/lib/solicitudes";
+import { baseConfigurada } from "@/lib/supabase";
 import { RUTA_PANEL } from "@/lib/panel";
 import FormularioPresupuesto from "./FormularioPresupuesto";
 import type { DatosIniciales } from "./FormularioPresupuesto";
@@ -42,5 +43,5 @@ export default async function PaginaPresupuesto({
 
   // La ruta del panel se pasa desde el servidor: si el componente del
   // navegador la importara, quedaria escrita en el JavaScript publico.
-  return <FormularioPresupuesto inicial={inicial} rutaPanel={RUTA_PANEL} />;
+  return <FormularioPresupuesto inicial={inicial} rutaBandeja={baseConfigurada() ? RUTA_PANEL : null} />;
 }

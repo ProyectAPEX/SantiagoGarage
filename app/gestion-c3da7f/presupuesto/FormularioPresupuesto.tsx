@@ -9,6 +9,7 @@ import {
 import { limpiarTexto, esTelefonoValido } from "@/lib/sanitize";
 import { formatearRut, rutValido, limpiarRut } from "@/lib/rut";
 import { marcarCotizada } from "../acciones";
+import BotonSalir from "../BotonSalir";
 
 /** Datos que llegan de una solicitud de la web, para precargar el formulario. */
 export type DatosIniciales = {
@@ -76,10 +77,11 @@ function guardarNumero(numero: string) {
 
 export default function FormularioPresupuesto({
   inicial,
-  rutaPanel,
+  rutaBandeja,
 }: {
   inicial: DatosIniciales | null;
-  rutaPanel: string;
+  /** null mientras no haya base de datos: no hay bandeja a la que volver */
+  rutaBandeja: string | null;
 }) {
   const [f, setF] = useState(() =>
     inicial
@@ -224,9 +226,16 @@ export default function FormularioPresupuesto({
       <div className="max-w-[640px] mx-auto">
         {/* Encabezado */}
         <div className="mb-6">
-          <a href={rutaPanel} className="inline-flex items-center gap-1 font-display font-semibold text-[14px] mb-4 py-1" style={{ color: "#16181D" }}>
-            ← Solicitudes
-          </a>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            {rutaBandeja ? (
+              <a href={rutaBandeja} className="inline-flex items-center gap-1 font-display font-semibold text-[14px] py-1" style={{ color: "#16181D" }}>
+                ← Solicitudes
+              </a>
+            ) : (
+              <span />
+            )}
+            <BotonSalir />
+          </div>
           <p className="font-display text-[12px] font-medium tracking-[2px] uppercase mb-1" style={{ color: "#D0021B" }}>
             Uso interno
           </p>

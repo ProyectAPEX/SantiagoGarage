@@ -2,8 +2,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { TELEFONO_VISIBLE, TEL_URL } from "@/lib/site";
+import { abrirEntrada } from "./EntradaSecreta";
 
 const links = [
   { href: "/", label: "Inicio" },
@@ -23,6 +24,22 @@ export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
+  // Entrada escondida del dueño: 5 toques seguidos al logo (menos de 2 s entre
+  // uno y otro). Un toque normal sigue llevando al inicio.
+  const toques = useRef({ cuenta: 0, reloj: undefined as ReturnType<typeof setTimeout> | undefined });
+  function tocarLogo() {
+    setOpen(false);
+    const t = toques.current;
+    clearTimeout(t.reloj);
+    t.cuenta += 1;
+    if (t.cuenta >= 5) {
+      t.cuenta = 0;
+      abrirEntrada();
+      return;
+    }
+    t.reloj = setTimeout(() => (t.cuenta = 0), 2000);
+  }
+
   return (
     <nav
       style={{ background: "rgba(250,250,248,0.94)", backdropFilter: "blur(12px)", borderBottom: "1px solid #E8E6E1" }}
@@ -31,7 +48,7 @@ export default function Navbar() {
     >
       <div className="flex items-center justify-between h-full max-w-[1280px] mx-auto">
         {/* Logo */}
-        <Link href="/" className="flex items-center shrink-0" onClick={() => setOpen(false)} aria-label="Santiago Garage, inicio">
+        <Link href="/" className="flex items-center shrink-0 touch-manipulation" onClick={tocarLogo} aria-label="Santiago Garage, inicio">
           <Image src="/logo-nav.png" alt="Santiago Garage" width={172} height={52} className="object-contain h-[46px] w-auto" priority />
         </Link>
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { RUTA_PANEL, credencialesValidas } from "@/lib/panel";
+import { RUTA_PANEL, RUTA_ENTRAR, COOKIE_PANEL, panelConfigurado, sesionValida } from "@/lib/panel";
 import { permitir, ipDesde } from "@/lib/rate-limit";
 
 const MAX_POR_MINUTO = Number(process.env.RATE_LIMIT_MAX ?? 120);
@@ -12,27 +12,32 @@ function origenesPermitidos(req: NextRequest): Set<string> {
   return permitidos;
 }
 
-// ——— Acceso privado al panel (ruta secreta + HTTP Basic en el servidor) ———
-function bloquearSiNoAutorizado(req: NextRequest): NextResponse | null {
-  if (!req.nextUrl.pathname.startsWith(RUTA_PANEL)) return null;
+const OCULTO = { "X-Robots-Tag": "noindex, nofollow, noarchive" };
 
-  // Si no hay credenciales configuradas, se niega el acceso (nunca se abre por defecto)
-  if (!process.env.PANEL_USUARIO || !process.env.PANEL_CLAVE) {
-    return new NextResponse("Panel no configurado.", { status: 503 });
-  }
-  if (credencialesValidas(req.headers.get("authorization"))) return null;
-
-  return new NextResponse("Acceso restringido.", {
-    status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="Santiago Garage - uso interno"',
-      "Content-Type": "text/plain; charset=utf-8",
-      "X-Robots-Tag": "noindex, nofollow",
-    },
-  });
+function esPanel(pathname: string): boolean {
+  return pathname === RUTA_PANEL || pathname.startsWith(`${RUTA_PANEL}/`);
 }
 
-export default function proxy(req: NextRequest) {
+// ——— Acceso privado al panel (ruta secreta + sesion firmada, como Ulloa) ———
+// Sin sesion, todo el panel manda a la pantalla de clave. Con sesion, la
+// pantalla de clave manda al panel.
+async function guardiaPanel(req: NextRequest): Promise<NextResponse | null> {
+  const { pathname } = req.nextUrl;
+  if (!esPanel(pathname)) return null;
+
+  // Si no hay clave configurada, se niega el acceso (nunca se abre por defecto)
+  if (!panelConfigurado()) {
+    return new NextResponse("Panel no configurado.", { status: 503, headers: OCULTO });
+  }
+
+  const conSesion = await sesionValida(req.cookies.get(COOKIE_PANEL)?.value);
+  if (pathname === RUTA_ENTRAR) {
+    return conSesion ? NextResponse.redirect(new URL(RUTA_PANEL, req.url), { headers: OCULTO }) : null;
+  }
+  return conSesion ? null : NextResponse.redirect(new URL(RUTA_ENTRAR, req.url), { headers: OCULTO });
+}
+
+export default async function proxy(req: NextRequest) {
   const ip = ipDesde(req.headers);
 
   // El límite general va primero: también frena intentos de adivinar la clave
@@ -53,8 +58,18 @@ export default function proxy(req: NextRequest) {
     }
   }
 
-  const noAutorizado = bloquearSiNoAutorizado(req);
-  if (noAutorizado) return noAutorizado;
+  // La clave del panel: pocos intentos por IP, contra quien quiera adivinarla
+  if (req.nextUrl.pathname === "/api/acceso" && req.method === "POST") {
+    if (!permitir(`acceso:${ip}`, 10, 10 * 60_000)) {
+      return NextResponse.json(
+        { ok: false, error: "Demasiados intentos. Espera unos minutos." },
+        { status: 429, headers: { "Retry-After": "600" } }
+      );
+    }
+  }
+
+  const desvio = await guardiaPanel(req);
+  if (desvio) return desvio;
 
   const permitidos = origenesPermitidos(req);
   const origin = req.headers.get("origin");
@@ -83,8 +98,8 @@ export default function proxy(req: NextRequest) {
   res.headers.set("X-RateLimit-Limit", String(MAX_POR_MINUTO));
 
   // El panel se oculta por cabecera, nunca nombrándolo en robots.txt (es público)
-  if (req.nextUrl.pathname.startsWith(RUTA_PANEL)) {
-    res.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+  if (esPanel(req.nextUrl.pathname)) {
+    res.headers.set("X-Robots-Tag", OCULTO["X-Robots-Tag"]);
   }
   if (origin && permitidos.has(origin)) {
     res.headers.set("Access-Control-Allow-Origin", origin);

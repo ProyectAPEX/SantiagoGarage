@@ -4,10 +4,42 @@
  *
  * Vive aparte de lib/site.ts a proposito: site.ts lo importan componentes que
  * se mandan al navegador, y la ruta no debe llegar nunca al JavaScript publico.
- * Solo se importa desde codigo de servidor (proxy, paginas y acciones del
- * panel). Tampoco se nombra en robots.txt.
+ * Solo se importa desde codigo de servidor (proxy, paginas, acciones y la API
+ * de acceso, que la entrega recien despues de la clave). Tampoco se nombra en
+ * robots.txt.
  */
 export const RUTA_PANEL = "/gestion-c3da7f";
+export const RUTA_ENTRAR = `${RUTA_PANEL}/entrar`;
+
+// ——— Sesion del panel: cookie firmada, mismo esquema que Ulloa SNKR ———
+// El token es `<expira>.<firma>` y no lleva la clave adentro. Usa Web Crypto
+// para funcionar igual en el proxy y en el servidor.
+
+export const COOKIE_PANEL = "panel_sesion";
+export const DURACION_SESION = 60 * 60 * 24 * 7; // 7 dias, en segundos
+
+const enc = new TextEncoder();
+
+/** Sin clave ni secreto configurados, nadie entra (nunca se abre por defecto). */
+export function panelConfigurado(): boolean {
+  return Boolean(process.env.PANEL_CLAVE && process.env.PANEL_SECRETO);
+}
+
+/**
+ * La llave mezcla PANEL_SECRETO con PANEL_CLAVE: si se cambia la clave, todas
+ * las sesiones abiertas dejan de valer solas.
+ */
+async function firmar(dato: string): Promise<string> {
+  const llave = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(`${process.env.PANEL_SECRETO}:${process.env.PANEL_CLAVE}`),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const firma = new Uint8Array(await crypto.subtle.sign("HMAC", llave, enc.encode(dato)));
+  return Array.from(firma, (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 /** Comparacion en tiempo constante: no filtra por cuanto tarda en fallar. */
 function iguales(a: string, b: string): boolean {
@@ -17,26 +49,22 @@ function iguales(a: string, b: string): boolean {
   return diff === 0;
 }
 
-/**
- * Valida la cabecera Authorization (HTTP Basic) contra PANEL_USUARIO y
- * PANEL_CLAVE. Sin credenciales configuradas, nadie entra.
- */
-export function credencialesValidas(authorization: string | null): boolean {
-  const usuario = process.env.PANEL_USUARIO;
-  const clave = process.env.PANEL_CLAVE;
-  if (!usuario || !clave || !authorization) return false;
+/** Se comparan las firmas y no los textos: asi tampoco se filtra el largo de la clave. */
+export async function claveCorrecta(clave: string): Promise<boolean> {
+  const real = process.env.PANEL_CLAVE;
+  if (!panelConfigurado() || !real) return false;
+  return iguales(await firmar(`clave:${clave}`), await firmar(`clave:${real}`));
+}
 
-  const [tipo, valor] = authorization.split(" ");
-  if (tipo !== "Basic" || !valor) return false;
-  try {
-    const decodificado = atob(valor);
-    const i = decodificado.indexOf(":");
-    if (i < 1) return false;
-    // ambas comparaciones siempre, para que el tiempo no delate cual fallo
-    const okUsuario = iguales(decodificado.slice(0, i), usuario);
-    const okClave = iguales(decodificado.slice(i + 1), clave);
-    return okUsuario && okClave;
-  } catch {
-    return false;
-  }
+export async function crearSesion(): Promise<string> {
+  const expira = String(Date.now() + DURACION_SESION * 1000);
+  return `${expira}.${await firmar(expira)}`;
+}
+
+export async function sesionValida(token: string | null | undefined): Promise<boolean> {
+  if (!token || !panelConfigurado()) return false;
+  const punto = token.indexOf(".");
+  const expira = token.slice(0, punto);
+  if (punto < 1 || !/^\d+$/.test(expira) || Date.now() > Number(expira)) return false;
+  return iguales(await firmar(expira), token.slice(punto + 1));
 }

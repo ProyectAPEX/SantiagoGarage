@@ -3,6 +3,11 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let cliente: SupabaseClient | null | undefined;
 
+/** ¿Esta conectada la base? Sin ella el panel va directo al presupuesto. */
+export function baseConfigurada(): boolean {
+  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SECRET_KEY);
+}
+
 /**
  * Cliente de Supabase para el SERVIDOR. Usa la clave secreta, que se salta
  * RLS, asi que nunca puede llegar al navegador: "server-only" hace fallar el

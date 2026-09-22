@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { exigirAcceso } from "@/lib/acceso-panel";
 import { listarSolicitudes, type Solicitud } from "@/lib/solicitudes";
+import { baseConfigurada } from "@/lib/supabase";
 import { RUTA_PANEL } from "@/lib/panel";
 import BotonesSolicitud from "./BotonesSolicitud";
+import BotonSalir from "./BotonSalir";
 
 export const dynamic = "force-dynamic";
 
@@ -79,14 +82,19 @@ function Tarjeta({ s }: { s: Solicitud }) {
 
 export default async function Bandeja() {
   await exigirAcceso();
+  // Sin base no hay bandeja que mostrar: el dueño entra directo a armar el presupuesto
+  if (!baseConfigurada()) redirect(`${RUTA_PANEL}/presupuesto`);
+
   const solicitudes = await listarSolicitudes();
   const nuevas = solicitudes?.filter((s) => s.estado === "nueva") ?? [];
   const atendidas = solicitudes?.filter((s) => s.estado !== "nueva") ?? [];
-  const sinBase = !process.env.SUPABASE_URL || !process.env.SUPABASE_SECRET_KEY;
 
   return (
-    <div className="px-5 pb-16" style={{ paddingTop: 32, background: "#F1EFEA", minHeight: "100vh" }}>
+    <div className="px-5 pb-16" style={{ paddingTop: 24, background: "#F1EFEA", minHeight: "100vh" }}>
       <div className="max-w-[640px] mx-auto">
+        <div className="flex justify-end mb-2">
+          <BotonSalir />
+        </div>
         <div className="flex items-end justify-between gap-3 mb-6">
           <div>
             <p className="font-display text-[12px] font-medium tracking-[2px] uppercase mb-1" style={{ color: "#D0021B" }}>
@@ -108,12 +116,10 @@ export default async function Bandeja() {
         {solicitudes === null ? (
           <div className="rounded-2xl p-5 bg-white" style={{ border: "1px solid #E8E6E1" }}>
             <p className="font-display font-bold text-[16px] mb-1" style={{ color: "#16181D" }}>
-              {sinBase ? "Falta conectar la base de datos" : "No se pudieron cargar las solicitudes"}
+              No se pudieron cargar las solicitudes
             </p>
             <p className="text-[14px]" style={{ color: "#6B7280" }}>
-              {sinBase
-                ? "Faltan SUPABASE_URL y SUPABASE_SECRET_KEY. Mientras tanto puedes armar presupuestos igual con “+ Presupuesto”."
-                : "La base no respondió. Si lleva días sin uso puede estar pausada: revisa el panel de Supabase."}
+              La base no respondió. Si lleva días sin uso puede estar pausada: revisa el panel de Supabase. Los presupuestos se pueden armar igual con “+ Presupuesto”.
             </p>
           </div>
         ) : (
