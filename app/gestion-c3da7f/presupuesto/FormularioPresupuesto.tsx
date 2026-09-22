@@ -101,9 +101,30 @@ export default function FormularioPresupuesto({
   const [error, setError] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [listo, setListo] = useState("");
-  /** Ultimo PDF generado, para abrirlo a mano si el telefono no lo descargó. */
-  const [pdfAMano, setPdfAMano] = useState("");
+  /**
+   * Ultimo PDF generado. El iPhone bloquea las descargas que no salen de un
+   * toque directo, asi que ademas de intentarla sola se deja a la vista.
+   */
+  const [pdfAMano, setPdfAMano] = useState({ url: "", nombre: "" });
+  const [textoMensaje, setTextoMensaje] = useState("");
   const urlPdf = useRef<string | null>(null);
+  const archivoPdf = useRef<File | null>(null);
+
+  /** Compartir nacido de un toque: es el camino que el iPhone sí permite. */
+  async function compartirPdf() {
+    const file = archivoPdf.current;
+    if (!file) return;
+    try {
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], text: textoMensaje });
+      } else {
+        setError("Este teléfono no permite compartir archivos. Usa “Guardar el PDF”.");
+      }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      setError("No se pudo compartir el PDF. Usa “Guardar el PDF”.");
+    }
+  }
 
   useEffect(() => {
     setNumero(siguienteNumero());
@@ -203,7 +224,7 @@ export default function FormularioPresupuesto({
     if (urlPdf.current) URL.revokeObjectURL(urlPdf.current);
     const url = URL.createObjectURL(blob);
     urlPdf.current = url;
-    setPdfAMano(url); // queda el enlace por si el telefono no descargo solo
+    setPdfAMano({ url, nombre: nombreArchivo }); // queda a la vista por si el telefono no descargo solo
 
     const a = document.createElement("a");
     a.href = url;
@@ -214,7 +235,7 @@ export default function FormularioPresupuesto({
     a.remove();
   }
 
-  async function generar(modo: "pdf" | "whatsapp" | "compartir") {
+  async function generar(modo: "pdf" | "whatsapp") {
     const err =
       validar() ||
       (modo === "whatsapp" && !numeroWhatsApp(f.telefono) ? "Escribe el WhatsApp del cliente para poder enviárselo." : "");
@@ -244,27 +265,12 @@ export default function FormularioPresupuesto({
       const blob = await generarPresupuestoPDF(datos);
       const nombreArchivo = `Presupuesto-${datos.numero}-${datos.cliente.nombre.split(" ")[0] || "cliente"}.pdf`;
       const file = new File([blob], nombreArchivo, { type: "application/pdf" });
+      archivoPdf.current = file; // para los botones de abajo, que sí nacen de un toque
 
       const texto = mensajeWhatsApp(datos);
+      setTextoMensaje(texto);
 
-      if (modo === "compartir") {
-        // Menu de compartir del telefono: manda el archivo, pero el chat lo
-        // elige el dueño a mano. Por eso no es el boton principal.
-        const puedeCompartir = typeof navigator !== "undefined" && !!navigator.canShare && navigator.canShare({ files: [file] });
-        if (!puedeCompartir) {
-          descargar(blob, nombreArchivo);
-          setListo("Este navegador no permite compartir archivos. El PDF quedó descargado.");
-        } else {
-          try {
-            await navigator.share({ files: [file], title: `Presupuesto ${datos.numero}`, text: texto });
-          } catch (e) {
-            // Cerro el menu sin mandar: no es error
-            if (e instanceof DOMException && e.name === "AbortError") return;
-            throw e;
-          }
-          setListo("Presupuesto compartido.");
-        }
-      } else if (modo === "whatsapp") {
+      if (modo === "whatsapp") {
         // El chat se abre con el numero escrito en el formulario, con el
         // detalle ya escrito. El PDF queda descargado para adjuntarlo con el
         // clip: WhatsApp no deja que una pagina web lo adjunte sola.
@@ -274,7 +280,7 @@ export default function FormularioPresupuesto({
         // aplicacion en el mismo instante, la descarga se queda a medias.
         if (ventana) setTimeout(() => (ventana.location.href = chat), 600);
         else window.open(chat, "_blank", "noopener,noreferrer");
-        setListo("PDF descargado y chat del cliente abierto. Adjúntalo con el clip 📎 → Documentos: es el primero de la lista.");
+        setListo("Chat del cliente abierto con el saludo. El PDF quedó acá abajo para guardarlo o mandarlo.");
       } else {
         descargar(blob, nombreArchivo);
         setListo("PDF descargado.");
@@ -299,7 +305,7 @@ export default function FormularioPresupuesto({
     setNumero(siguienteNumero());
     setError("");
     setListo("");
-    setPdfAMano("");
+    setPdfAMano({ url: "", nombre: "" });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -546,13 +552,36 @@ export default function FormularioPresupuesto({
             {listo} <button onClick={nuevo} className="underline ml-1">Nuevo presupuesto</button>
           </p>
         )}
-        {pdfAMano && (
-          <p className="text-center text-[13px] mb-3" style={{ color: "#6B7280" }}>
-            ¿No se descargó?{" "}
-            <a href={pdfAMano} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: "#16181D" }}>
-              Abrir el PDF
-            </a>
-          </p>
+        {/* El iPhone bloquea la descarga automática: estos botones nacen de un toque y sí funcionan */}
+        {pdfAMano.url && (
+          <div className="rounded-2xl p-4 mb-3 bg-white" style={{ border: "1px solid #E8E6E1" }}>
+            <p className="font-display font-bold text-[14px] mb-1" style={{ color: "#16181D" }}>
+              PDF listo
+            </p>
+            <p className="text-[13px] mb-3" style={{ color: "#6B7280" }}>
+              Si no se guardó solo, tócalo acá. “Enviar por WhatsApp” lo manda como archivo al chat que elijas.
+            </p>
+            <div className="flex gap-2">
+              <a
+                href={pdfAMano.url}
+                download={pdfAMano.nombre}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 text-center font-display font-semibold text-[14px] py-3 rounded-xl"
+                style={{ border: "1px solid #D5D2CC", color: "#16181D" }}
+              >
+                Guardar el PDF
+              </a>
+              <button
+                type="button"
+                onClick={compartirPdf}
+                className="flex-1 font-display font-semibold text-[14px] py-3 rounded-xl"
+                style={{ background: "#16181D", color: "#fff" }}
+              >
+                Enviar por WhatsApp
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
@@ -590,16 +619,6 @@ export default function FormularioPresupuesto({
               {ocupado ? "Generando..." : "Enviar cotización"}
             </button>
           </div>
-          {/* Unico camino en que el PDF viaja como archivo: el chat se elige a mano */}
-          <button
-            type="button"
-            onClick={() => generar("compartir")}
-            disabled={ocupado}
-            className="w-full mt-2 py-2 font-display font-semibold text-[13px] disabled:opacity-50"
-            style={{ color: "#6B7280" }}
-          >
-            Mandar el PDF eligiendo el chat
-          </button>
         </div>
       </div>
     </div>
