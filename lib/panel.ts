@@ -26,6 +26,18 @@ export function panelConfigurado(): boolean {
 }
 
 /**
+ * En el local (`npm run dev`) el panel se abre sin clave, para probar rapido.
+ *
+ * NODE_ENV vale "development" SOLO con el servidor de desarrollo: en Vercel y
+ * en cualquier build de produccion vale "production", asi que el sitio
+ * publicado siempre pide la clave. No hay variable que lo desactive: no se
+ * puede dejar abierto en produccion por error.
+ */
+export function accesoLibre(): boolean {
+  return process.env.NODE_ENV === "development";
+}
+
+/**
  * La llave mezcla PANEL_SECRETO con PANEL_CLAVE: si se cambia la clave, todas
  * las sesiones abiertas dejan de valer solas.
  */

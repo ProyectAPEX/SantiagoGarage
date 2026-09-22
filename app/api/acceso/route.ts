@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { RUTA_PANEL, COOKIE_PANEL, DURACION_SESION, claveCorrecta, crearSesion, panelConfigurado } from "@/lib/panel";
+import { RUTA_PANEL, COOKIE_PANEL, DURACION_SESION, accesoLibre, claveCorrecta, crearSesion, panelConfigurado } from "@/lib/panel";
 
 // Entrada al panel del dueño. El tope de intentos por IP va en el proxy.
 //
@@ -14,6 +14,16 @@ const galleta = {
   secure: process.env.NODE_ENV === "production",
   path: RUTA_PANEL,
 };
+
+/**
+ * ¿Hace falta clave? En el local no: la entrada escondida pregunta por aca y,
+ * si puede pasar sin clave, entra directo. En produccion responde 404 y la
+ * ventana pide la clave como siempre.
+ */
+export async function GET() {
+  if (!accesoLibre()) return NextResponse.json({ ok: false }, { status: 404 });
+  return NextResponse.json({ ok: true, destino: RUTA_PANEL });
+}
 
 export async function POST(req: Request) {
   if (!panelConfigurado()) {

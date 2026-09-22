@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { accesoLibre } from "@/lib/panel";
 
 export const metadata: Metadata = {
   title: "Presupuestos",
@@ -7,5 +8,15 @@ export const metadata: Metadata = {
 };
 
 export default function InternoLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  // Para no confundir el local con la web publicada, que sí pide clave
+  return (
+    <>
+      {accesoLibre() && (
+        <p className="font-display text-[12px] font-semibold text-center py-1.5" style={{ background: "#16181D", color: "#fff" }}>
+          Local · sin clave
+        </p>
+      )}
+      {children}
+    </>
+  );
 }

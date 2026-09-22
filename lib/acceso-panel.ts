@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { COOKIE_PANEL, sesionValida } from "@/lib/panel";
+import { COOKIE_PANEL, accesoLibre, sesionValida } from "@/lib/panel";
 
 /**
  * Segunda barrera del panel, dentro del servidor.
@@ -12,6 +12,7 @@ import { COOKIE_PANEL, sesionValida } from "@/lib/panel";
  * responde 404, igual que una pagina que no existe.
  */
 export async function exigirAcceso(): Promise<void> {
+  if (accesoLibre()) return;
   const galletas = await cookies();
   if (!(await sesionValida(galletas.get(COOKIE_PANEL)?.value))) notFound();
 }

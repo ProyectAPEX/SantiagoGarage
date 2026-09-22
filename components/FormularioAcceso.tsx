@@ -1,6 +1,13 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
+
+/** Va al panel solo si el destino es una ruta de este mismo sitio. */
+function irA(destino: unknown): boolean {
+  if (typeof destino !== "string" || !destino.startsWith("/") || destino.startsWith("//")) return false;
+  window.location.assign(destino);
+  return true;
+}
 
 /**
  * Clave del panel del dueño. Se usa en la entrada escondida del sitio y en la
@@ -14,6 +21,19 @@ export default function FormularioAcceso() {
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
 
+  // En el local el panel se abre sin clave: el servidor responde con el
+  // destino y se entra derecho. Publicado responde 404 y se pide la clave.
+  useEffect(() => {
+    let vigente = true;
+    fetch("/api/acceso")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((datos) => vigente && datos?.ok && irA(datos.destino))
+      .catch(() => null);
+    return () => {
+      vigente = false;
+    };
+  }, []);
+
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
     if (!clave || enviando) return;
@@ -26,11 +46,7 @@ export default function FormularioAcceso() {
         body: JSON.stringify({ clave }),
       });
       const datos = await res.json().catch(() => ({}));
-      const destino = datos?.destino;
-      if (res.ok && typeof destino === "string" && destino.startsWith("/") && !destino.startsWith("//")) {
-        window.location.assign(destino);
-        return; // queda en "Entrando..." hasta que carga el panel
-      }
+      if (res.ok && irA(datos?.destino)) return; // queda en "Entrando..." hasta que carga el panel
       setError(datos?.error ?? "No se pudo entrar. Intenta de nuevo.");
     } catch {
       setError("Sin conexión. Revisa internet e intenta de nuevo.");

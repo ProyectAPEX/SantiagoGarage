@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { RUTA_PANEL, RUTA_ENTRAR, COOKIE_PANEL, panelConfigurado, sesionValida } from "@/lib/panel";
+import { RUTA_PANEL, RUTA_ENTRAR, COOKIE_PANEL, accesoLibre, panelConfigurado, sesionValida } from "@/lib/panel";
 import { permitir, ipDesde } from "@/lib/rate-limit";
 
 const MAX_POR_MINUTO = Number(process.env.RATE_LIMIT_MAX ?? 120);
@@ -24,6 +24,11 @@ function esPanel(pathname: string): boolean {
 async function guardiaPanel(req: NextRequest): Promise<NextResponse | null> {
   const { pathname } = req.nextUrl;
   if (!esPanel(pathname)) return null;
+
+  // En el local se entra derecho, sin clave. En produccion nunca pasa por aca.
+  if (accesoLibre()) {
+    return pathname === RUTA_ENTRAR ? NextResponse.redirect(new URL(RUTA_PANEL, req.url), { headers: OCULTO }) : null;
+  }
 
   // Si no hay clave configurada, se niega el acceso (nunca se abre por defecto)
   if (!panelConfigurado()) {
