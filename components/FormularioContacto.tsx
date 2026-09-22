@@ -54,27 +54,22 @@ export default function FormularioContacto() {
       `Hola, quiero cotizar un servicio.\n\nNombre: ${nombre}\nTeléfono: ${telefono}\nEmail: ${email || "—"}\nAuto: ${auto || "—"}\nMensaje: ${mensaje}`
     );
 
-    // 1) Guardar la solicitud para el admin. Va en paralelo: keepalive la
-    //    termina aunque el cliente salte a WhatsApp. Si falla, el cliente igual
-    //    llega por WhatsApp, asi que no se pierde nadie.
-    const guardado = fetch("/api/solicitudes", {
+    // 1) Guardar la solicitud para el panel, sin esperar respuesta. Hoy no hay
+    //    base conectada y falla: da igual, la entrega real es WhatsApp. El dia
+    //    que se conecte Supabase, esto empieza a guardar solo.
+    fetch("/api/solicitudes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ nombre, telefono, email, auto, mensaje }),
       keepalive: true,
-    })
-      .then((r) => r.ok)
-      .catch(() => false);
+    }).catch(() => null);
 
-    // 2) WhatsApp en este mismo toque, como siempre. Si se abriera despues de
-    //    esperar el guardado, el navegador del celular lo bloquearia.
+    // 2) WhatsApp en este mismo toque, porque si se esperara cualquier otra
+    //    cosa el navegador del celular bloquearia la ventana.
     window.open(`${WA_URL}?text=${texto}`, "_blank", "noopener,noreferrer");
 
-    guardado.then((ok) => {
-      if (!ok) return;
-      setRecibida(true);
-      setForm({ nombre: "", telefono: "", email: "", auto: "", mensaje: "", empresa: "" });
-    });
+    setRecibida(true);
+    setForm({ nombre: "", telefono: "", email: "", auto: "", mensaje: "", empresa: "" });
   };
 
   const inputStyle = {
@@ -142,7 +137,7 @@ export default function FormularioContacto() {
 
           {recibida && (
             <p role="status" className="text-center text-[14px] font-medium" style={{ color: "#16181D" }}>
-              ¡Listo! Recibimos tu solicitud y te responderemos pronto.
+              ¡Listo! Te abrimos WhatsApp con tu mensaje. Si no se abrió, revisa que el navegador no haya bloqueado la ventana.
             </p>
           )}
 
