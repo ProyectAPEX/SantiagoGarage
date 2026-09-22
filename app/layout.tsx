@@ -1,13 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Manrope } from "next/font/google";
+import { Archivo, Big_Shoulders, Manrope } from "next/font/google";
 import "./globals.css";
 import { HORARIO } from "@/lib/site";
 
 // Autoalojadas: next/font las descarga al compilar y las sirve desde el propio
 // sitio. Antes venian por @import de Google Fonts en el CSS, y desde Next 16.3
 // el compilador descarta ese @import: el sitio quedaba con la fuente del sistema.
-const archivo = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-archivo", display: "swap" });
+const archivo = Archivo({ subsets: ["latin"], variable: "--font-archivo", display: "swap" });
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
+// Solo para el titular del hero: letra de letrero industrial, menos generica.
+// Next no trae medidas de respaldo para esta fuente: sin adjustFontFallback avisa en cada compilacion.
+const titular = Big_Shoulders({ subsets: ["latin"], weight: ["800"], variable: "--font-titular", display: "swap", adjustFontFallback: false });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://santiagogarage.cl";
 
@@ -78,7 +81,7 @@ const jsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${archivo.variable} ${manrope.variable}`}>
+    <html lang="es" className={`${archivo.variable} ${manrope.variable} ${titular.variable}`}>
       <body>
         <script
           type="application/ld+json"

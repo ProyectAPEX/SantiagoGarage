@@ -65,10 +65,12 @@ export default function Inicio() {
             <motion.p variants={heroItem} className="font-display text-[12px] sm:text-[13px] font-bold tracking-[2.5px] uppercase mb-5" style={{ color: "#D0021B" }}>
               La excelencia en Santiago
             </motion.p>
+            {/* "Orgullo de conducir" mide 8,52 veces el tamaño de letra: los clamps
+                salen del ancho de la columna / 8,6, para que no parta en 3 lineas. */}
             <motion.h1
               variants={heroTitulo}
-              className="font-condensed uppercase mb-6 text-[length:clamp(34px,10vw,56px)] lg:text-[length:clamp(40px,calc(5.6vw_-_12px),66px)]"
-              style={{ fontWeight: 800, lineHeight: 0.98, letterSpacing: "-0.5px", color: "#16181D" }}
+              className="font-titular uppercase mb-6 text-[length:clamp(32px,calc(11.4vw_-_4px),64px)] lg:text-[length:clamp(44px,calc(5.8vw_-_11.5px),68px)]"
+              style={{ fontWeight: 800, lineHeight: 0.98, color: "#16181D" }}
             >
               Restauramos el<br />orgullo de conducir
             </motion.h1>

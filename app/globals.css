@@ -31,10 +31,9 @@ body {
   font-family: var(--font-archivo), sans-serif;
 }
 
-/* Archivo angosto para titulares grandes (eco de la letra del logo) */
-@utility font-condensed {
-  font-family: var(--font-archivo), sans-serif;
-  font-stretch: 62%;
+/* Titular del hero: Big Shoulders, letra de letrero industrial */
+@utility font-titular {
+  font-family: var(--font-titular), var(--font-archivo), sans-serif;
 }
 
 ::-webkit-scrollbar { width: 4px; }
