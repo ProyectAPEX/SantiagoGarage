@@ -10,6 +10,9 @@ import { limpiarTexto, esTelefonoValido } from "@/lib/sanitize";
 import { formatearRut, rutValido, limpiarRut } from "@/lib/rut";
 import { marcarCotizada } from "../acciones";
 import BotonSalir from "../BotonSalir";
+import CampoSugerido from "./CampoSugerido";
+import { buscarMarcas, buscarModelos, buscarColores } from "@/lib/vehiculos";
+import { SERVICIOS, PIEZAS } from "@/lib/trabajos";
 
 /** Datos que llegan de una solicitud de la web, para precargar el formulario. */
 export type DatosIniciales = {
@@ -37,6 +40,10 @@ const vacio = {
   validezDias: "15",
   observaciones: "",
 };
+
+/** Una línea de trabajo. `servicio` es solo del formulario: al PDF va la descripción. */
+type Linea = ItemTrabajo & { servicio: string };
+const lineaVacia: Linea = { servicio: "", descripcion: "", precio: 0 };
 
 /** Hoy en formato AAAA-MM-DD, en hora local (no UTC). */
 function hoyISO(): string {
@@ -89,7 +96,7 @@ export default function FormularioPresupuesto({
       : vacio
   );
   const [solicitud, setSolicitud] = useState<DatosIniciales | null>(inicial);
-  const [items, setItems] = useState<ItemTrabajo[]>([{ descripcion: "", precio: 0 }]);
+  const [items, setItems] = useState<Linea[]>([{ ...lineaVacia }]);
   const [numero, setNumero] = useState("—");
   const [error, setError] = useState("");
   const [ocupado, setOcupado] = useState(false);
@@ -109,6 +116,31 @@ export default function FormularioPresupuesto({
     else copia[i].descripcion = v;
     setItems(copia);
   };
+
+  /**
+   * El servicio elegido encabeza la descripción: "Desabolladura y pintura de ".
+   * Si ya había texto escrito a mano, solo se cambia el servicio del principio;
+   * nunca se pisa lo que escribió el usuario.
+   */
+  function elegirServicio(i: number, servicio: string) {
+    const copia = [...items];
+    const { servicio: antes, descripcion } = copia[i];
+    let nueva = descripcion;
+    if (!descripcion.trim()) nueva = servicio ? `${servicio} de ` : "";
+    else if (antes && descripcion.startsWith(antes)) {
+      const resto = descripcion.slice(antes.length);
+      nueva = servicio ? servicio + resto : resto.replace(/^\s*de\s+/i, "");
+    }
+    copia[i] = { ...copia[i], servicio, descripcion: nueva.slice(0, 200) };
+    setItems(copia);
+  }
+
+  /** Agrega la pieza al final de la descripción, con un espacio si hace falta. */
+  function agregarPieza(i: number, pieza: string) {
+    const actual = items[i].descripcion.trim();
+    const nueva = actual ? `${actual} ${pieza}` : pieza.charAt(0).toUpperCase() + pieza.slice(1);
+    setItem(i, "descripcion", nueva.slice(0, 200));
+  }
 
   const totales = calcularTotales(items, Number(f.descuento) || 0);
 
@@ -210,7 +242,7 @@ export default function FormularioPresupuesto({
   function nuevo() {
     setSolicitud(null);
     setF({ ...vacio, fecha: hoyISO() });
-    setItems([{ descripcion: "", precio: 0 }]);
+    setItems([{ ...lineaVacia }]);
     setNumero(siguienteNumero());
     setError("");
     setListo("");
@@ -308,11 +340,29 @@ export default function FormularioPresupuesto({
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
               <label className={label} htmlFor="marca">Marca</label>
-              <input id="marca" className={input} value={f.marca} onChange={set("marca")} placeholder="Hyundai" maxLength={40} />
+              <CampoSugerido
+                id="marca"
+                className={input}
+                valor={f.marca}
+                buscar={buscarMarcas}
+                alEscribir={(v) => setF({ ...f, marca: v })}
+                placeholder="Hyundai"
+                maxLength={40}
+              />
             </div>
             <div>
               <label className={label} htmlFor="modelo">Modelo</label>
-              <input id="modelo" className={input} value={f.modelo} onChange={set("modelo")} placeholder="Grand i10" maxLength={40} />
+              {/* Sin marca escrita busca en todas y, al elegir, completa las dos */}
+              <CampoSugerido
+                id="modelo"
+                className={input}
+                valor={f.modelo}
+                buscar={(t) => buscarModelos(f.marca, t)}
+                alEscribir={(v) => setF({ ...f, modelo: v })}
+                alElegir={(s) => setF({ ...f, modelo: s.texto, marca: s.detalle ?? f.marca })}
+                placeholder="Grand i10"
+                maxLength={40}
+              />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -326,7 +376,15 @@ export default function FormularioPresupuesto({
             </div>
             <div>
               <label className={label} htmlFor="color">Color</label>
-              <input id="color" className={input} value={f.color} onChange={set("color")} placeholder="Blanco" maxLength={25} />
+              <CampoSugerido
+                id="color"
+                className={input}
+                valor={f.color}
+                buscar={buscarColores}
+                alEscribir={(v) => setF({ ...f, color: v })}
+                placeholder="Blanco"
+                maxLength={25}
+              />
             </div>
           </div>
         </section>
@@ -353,8 +411,23 @@ export default function FormularioPresupuesto({
                   </button>
                 )}
               </div>
-              <textarea
+              <label className={label} htmlFor={`servicio-${i}`}>Servicio</label>
+              <select
+                id={`servicio-${i}`}
                 className={input + " mb-3"}
+                value={item.servicio}
+                onChange={(e) => elegirServicio(i, e.target.value)}
+              >
+                <option value="">Elegir servicio…</option>
+                {SERVICIOS.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+
+              <label className={label} htmlFor={`detalle-${i}`}>Detalle</label>
+              <textarea
+                id={`detalle-${i}`}
+                className={input}
                 rows={2}
                 value={item.descripcion}
                 onChange={(e) => setItem(i, "descripcion", e.target.value)}
@@ -362,6 +435,22 @@ export default function FormularioPresupuesto({
                 maxLength={200}
                 style={{ resize: "vertical" }}
               />
+
+              {/* Piezas frecuentes: se agregan al final del detalle */}
+              {/* scrollbarWidth: la fila se corre al lado sin mostrar la barra */}
+              <div className="flex gap-2 overflow-x-auto py-2 mb-2 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
+                {PIEZAS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => agregarPieza(i, p)}
+                    className="shrink-0 rounded-full px-3 py-2 text-[13px] whitespace-nowrap"
+                    style={{ border: "1px solid #D5D2CC", color: "#4B5058", background: "#fff" }}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
               <div className="flex items-center gap-2">
                 <span className="font-display font-bold text-[17px]" style={{ color: "#6B7280" }}>$</span>
                 <input
@@ -376,7 +465,7 @@ export default function FormularioPresupuesto({
           ))}
           <button
             type="button"
-            onClick={() => setItems([...items, { descripcion: "", precio: 0 }])}
+            onClick={() => setItems([...items, { ...lineaVacia }])}
             className="font-display font-semibold text-[14px] w-full py-3.5 rounded-xl border border-dashed"
             style={{ borderColor: "#D5D2CC", color: "#16181D" }}
           >
