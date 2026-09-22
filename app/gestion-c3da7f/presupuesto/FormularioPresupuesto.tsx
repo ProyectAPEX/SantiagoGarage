@@ -179,23 +179,12 @@ export default function FormularioPresupuesto({
   }
 
   /**
-   * Mensaje con el detalle del presupuesto. Va el resumen escrito porque
-   * WhatsApp NO permite que una pagina web adjunte el archivo: el PDF se
-   * adjunta a mano en el chat que se abre.
+   * Mensaje corto que acompaña al PDF. El detalle va en el PDF, no escrito
+   * en el chat.
    */
   function mensajeWhatsApp(datos: ReturnType<typeof armarDatos>): string {
-    const lineas = datos.items.map((i) => `• ${i.descripcion}${i.precio ? `: ${formatCLP(i.precio)}` : ""}`);
-    const auto = [f.marca, f.modelo, f.anio].filter(Boolean).join(" ");
-    return [
-      `Hola ${datos.cliente.nombre}, le enviamos el presupuesto N° ${datos.numero} de Santiago Garage.`,
-      auto ? `\nVehículo: ${auto}` : "",
-      `\n${lineas.join("\n")}`,
-      `\nTotal con IVA: ${formatCLP(totales.total)}`,
-      datos.validezDias ? `Válido por ${datos.validezDias} días.` : "",
-      `\nLe adjuntamos el detalle en PDF. Cualquier duda quedamos atentos.`,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    const nombre = datos.cliente.nombre.split(" ")[0] || "";
+    return `Hola ${nombre}, le adjuntamos la cotización N° ${datos.numero} de Santiago Garage. Cualquier duda quedamos atentos.`;
   }
 
   /** Deja el PDF en el celular o computador del dueño, para adjuntarlo. */
@@ -255,7 +244,7 @@ export default function FormularioPresupuesto({
           "_blank",
           "noopener,noreferrer"
         );
-        setListo("Se abrió el chat del cliente con el detalle. Adjunta el PDF con el clip 📎 → Documentos.");
+        setListo("Se abrió el chat del cliente. Adjunta el PDF con el clip 📎 → Documentos: es el primero de la lista.");
       } else {
         descargar(blob, nombreArchivo);
         setListo("PDF descargado.");
@@ -561,7 +550,7 @@ export default function FormularioPresupuesto({
               {ocupado ? "Generando..." : "Enviar al cliente"}
             </button>
           </div>
-          {/* Para elegir el chat a mano (o mandarlo por otra app) */}
+          {/* Unico camino en que el PDF viaja como archivo: el chat se elige a mano */}
           <button
             type="button"
             onClick={() => generar("compartir")}
@@ -569,7 +558,7 @@ export default function FormularioPresupuesto({
             className="w-full mt-2 py-2 font-display font-semibold text-[13px] disabled:opacity-50"
             style={{ color: "#6B7280" }}
           >
-            Compartir el PDF a otro chat
+            Mandar el PDF eligiendo el chat
           </button>
         </div>
       </div>
