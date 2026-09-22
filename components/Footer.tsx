@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { WA_URL, TELEFONO_VISIBLE, EMAIL_CONTACTO, HORARIO_VISIBLE } from "@/lib/site";
-import { CopyrightSecreto } from "./EntradaSecreta";
+import { BotonEntrada } from "./EntradaSecreta";
 
 export default function Footer() {
   return (
@@ -107,10 +107,11 @@ export default function Footer() {
       <div className="px-5 sm:px-10 py-5" style={{ borderTop: "1px solid #F0EEE9" }}>
         <div className="max-w-[1200px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center">
           <span className="text-[13px]" style={{ color: "#9CA3AF" }}>
-            <CopyrightSecreto /> 2026 Santiago Garage SPA · Todos los derechos reservados
+            © 2026 Santiago Garage SPA · Todos los derechos reservados
           </span>
-          <span className="text-[13px]" style={{ color: "#9CA3AF" }}>
+          <span className="flex items-center gap-3 text-[13px]" style={{ color: "#9CA3AF" }}>
             Desabolladura & Pintura Automotriz
+            <BotonEntrada />
           </span>
         </div>
       </div>

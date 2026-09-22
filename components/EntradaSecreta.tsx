@@ -2,9 +2,9 @@
 import { useEffect, useState } from "react";
 import FormularioAcceso from "./FormularioAcceso";
 
-// Entrada escondida al panel del dueño, como en Ulloa SNKR: 5 toques seguidos
-// al logo, o un toque al © del footer. Pide la clave ahi mismo, sin cambiar
-// de pagina ni mostrar la ruta del panel.
+// Entrada escondida al panel del dueño, como en Ulloa SNKR: el iconito de
+// persona casi transparente del footer, o 5 toques seguidos al logo. Pide la
+// clave ahi mismo, sin cambiar de pagina ni mostrar la ruta del panel.
 
 const EVENTO = "sg:entrar";
 
@@ -12,11 +12,20 @@ export function abrirEntrada() {
   window.dispatchEvent(new Event(EVENTO));
 }
 
-/** El © del footer: a simple vista es texto, pero abre la entrada. */
-export function CopyrightSecreto() {
+/** Iconito de persona del footer, igual que en Ulloa: se ve solo si uno sabe que esta. */
+export function BotonEntrada() {
   return (
-    <button type="button" onClick={abrirEntrada} tabIndex={-1} aria-hidden="true" className="cursor-default" style={{ font: "inherit", color: "inherit" }}>
-      ©
+    <button
+      type="button"
+      onClick={abrirEntrada}
+      tabIndex={-1}
+      aria-label="Panel del taller"
+      className="p-2 -m-2 opacity-30 hover:opacity-60 transition-opacity"
+      style={{ color: "#6B7280" }}
+    >
+      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+      </svg>
     </button>
   );
 }
