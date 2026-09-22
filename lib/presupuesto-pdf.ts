@@ -1,11 +1,11 @@
-import { TELEFONO_VISIBLE } from "@/lib/site";
+import { TELEFONO_VISIBLE, INSTAGRAM } from "@/lib/site";
 
 export type ItemTrabajo = { descripcion: string; precio: number };
 
 export type Presupuesto = {
   numero: string;
   fecha: string;
-  cliente: { nombre: string; rut: string; telefono: string };
+  cliente: { nombre: string; rut: string; telefono: string; domicilio: string; comuna: string };
   vehiculo: { marca: string; modelo: string; patente: string; anio: string; color: string };
   items: ItemTrabajo[];
   descuento: number;
@@ -105,6 +105,7 @@ export async function generarPresupuestoPDF(p: Presupuesto): Promise<Blob> {
   doc.setFont("helvetica", "normal");
   doc.text(TELEFONO_VISIBLE, W - M, y + 11, { align: "right" });
   doc.text("santiagogarage.cl", W - M, y + 16, { align: "right" });
+  doc.text(`Instagram: ${INSTAGRAM}`, W - M, y + 21, { align: "right" });
 
   y += 31;
 
@@ -132,6 +133,9 @@ export async function generarPresupuestoPDF(p: Presupuesto): Promise<Blob> {
   const mitad = ANCHO / 2;
   campo("Cliente", p.cliente.nombre, M, y, mitad - 4);
   campo("RUT", p.cliente.rut, M + mitad, y, mitad);
+  y += 8;
+  campo("Domicilio", p.cliente.domicilio, M, y, mitad - 4);
+  campo("Comuna", p.cliente.comuna, M + mitad, y, mitad);
   y += 8;
   campo("Marca", p.vehiculo.marca, M, y, mitad - 4);
   campo("Modelo", p.vehiculo.modelo, M + mitad, y, mitad);
@@ -251,7 +255,6 @@ export async function generarPresupuestoPDF(p: Presupuesto): Promise<Blob> {
   doc.setFont("helvetica", "bold").setFontSize(7.5).setTextColor(...TINTA);
   doc.text("MEDIOS DE PAGO: DÉBITO · CRÉDITO · TRANSFERENCIA · EFECTIVO", M, yPie - 2);
   doc.setFont("helvetica", "normal").setFontSize(7).setTextColor(...GRIS);
-  doc.text("Trabajos con garantía escrita · Pintura al horno · Materiales PPG y Glasurit", M, yPie + 2);
   doc.text("Santiago Garage SPA", W - M, yPie + 2, { align: "right" });
 
   return doc.output("blob");

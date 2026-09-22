@@ -1,6 +1,6 @@
 "use client";
 import { useId, useState } from "react";
-import type { Sugerencia } from "@/lib/vehiculos";
+import type { Sugerencia } from "@/lib/sugerencias";
 
 /**
  * Campo de texto con sugerencias propias.

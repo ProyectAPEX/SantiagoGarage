@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { WA_URL, TELEFONO_VISIBLE, EMAIL_CONTACTO, HORARIO_VISIBLE } from "@/lib/site";
+import { WA_URL, TELEFONO_VISIBLE, EMAIL_CONTACTO, HORARIO_VISIBLE, INSTAGRAM_URL } from "@/lib/site";
 import { BotonEntrada } from "./EntradaSecreta";
 
 export default function Footer() {
@@ -25,7 +25,7 @@ export default function Footer() {
             </p>
             {/* Socials */}
             <div className="flex items-center justify-center gap-4">
-              <a href="https://www.instagram.com/santiagogarage.cl/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"
+              <a href={INSTAGRAM_URL} target="_blank" rel="noopener noreferrer" aria-label="Instagram"
                 className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-black hover:text-white"
                 style={{ border: "1px solid #E8E6E1", color: "#16181D" }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">

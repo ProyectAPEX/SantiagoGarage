@@ -1,11 +1,11 @@
+import { filtrar, normalizar, type Sugerencia } from "@/lib/sugerencias";
+
 /**
  * Marcas y modelos que circulan en Chile, para autocompletar el presupuesto.
  * No pretende ser la lista completa del mercado: son los que llegan a un
  * taller de desabolladura. Los campos siguen siendo libres, asi que si falta
  * uno se escribe igual.
  */
-
-export type Sugerencia = { texto: string; detalle?: string };
 
 export const MARCAS: Record<string, string[]> = {
   Chevrolet: ["Sail", "Spark", "Spark GT", "Onix", "Aveo", "Corsa", "Cruze", "Sonic", "Tracker", "Groove", "Captiva", "Equinox", "Blazer", "Trailblazer", "Traverse", "Tahoe", "Suburban", "Montana", "Colorado", "Silverado", "N300", "N400", "Orlando", "Camaro"],
@@ -66,34 +66,6 @@ export const COLORES = [
 ];
 
 const listaMarcas = Object.keys(MARCAS);
-
-/** Sin tildes ni mayusculas: "Citroën" y "citroen" se buscan igual. */
-function normalizar(texto: string): string {
-  return texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
-}
-
-/**
- * Ordena por que tan al principio calza lo escrito: primero lo que empieza
- * igual, despues lo que tiene una palabra que empieza igual, al final lo que
- * solo lo contiene. Sin texto no sugiere nada: la lista aparece al escribir.
- */
-function filtrar(opciones: Sugerencia[], texto: string, tope = 8): Sugerencia[] {
-  const q = normalizar(texto);
-  if (!q) return [];
-  const puntaje = (s: Sugerencia) => {
-    const n = normalizar(s.texto);
-    if (n.startsWith(q)) return 0;
-    if (n.split(/[\s-]+/).some((p) => p.startsWith(q))) return 1;
-    if (n.includes(q)) return 2;
-    return -1;
-  };
-  return opciones
-    .map((s) => ({ s, p: puntaje(s) }))
-    .filter((x) => x.p >= 0)
-    .sort((a, b) => a.p - b.p || a.s.texto.localeCompare(b.s.texto))
-    .slice(0, tope)
-    .map((x) => x.s);
-}
 
 export function buscarMarcas(texto: string): Sugerencia[] {
   return filtrar(listaMarcas.map((m) => ({ texto: m })), texto);

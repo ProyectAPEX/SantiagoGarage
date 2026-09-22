@@ -12,6 +12,7 @@ import { marcarCotizada } from "../acciones";
 import BotonSalir from "../BotonSalir";
 import CampoSugerido from "./CampoSugerido";
 import { buscarMarcas, buscarModelos, buscarColores } from "@/lib/vehiculos";
+import { buscarComunas } from "@/lib/comunas";
 import { SERVICIOS } from "@/lib/trabajos";
 
 /** Datos que llegan de una solicitud de la web, para precargar el formulario. */
@@ -30,6 +31,8 @@ const vacio = {
   nombre: "",
   rut: "",
   telefono: "",
+  domicilio: "",
+  comuna: "",
   marca: "",
   modelo: "",
   anio: "",
@@ -169,6 +172,8 @@ export default function FormularioPresupuesto({
         nombre: limpiarTexto(f.nombre, 80),
         rut: limpiarTexto(f.rut, 12),
         telefono: limpiarTexto(f.telefono, 17),
+        domicilio: limpiarTexto(f.domicilio, 60),
+        comuna: limpiarTexto(f.comuna, 30),
       },
       vehiculo: {
         marca: limpiarTexto(f.marca, 40),
@@ -388,6 +393,24 @@ export default function FormularioPresupuesto({
             <div>
               <label className={label} htmlFor="telefono">WhatsApp</label>
               <input id="telefono" className={input} value={f.telefono} onChange={set("telefono")} placeholder="+56 9 ..." inputMode="tel" maxLength={17} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <div>
+              <label className={label} htmlFor="domicilio">Domicilio</label>
+              <input id="domicilio" className={input} value={f.domicilio} onChange={set("domicilio")} placeholder="Calle y número" maxLength={60} />
+            </div>
+            <div>
+              <label className={label} htmlFor="comuna">Comuna</label>
+              <CampoSugerido
+                id="comuna"
+                className={input}
+                valor={f.comuna}
+                buscar={buscarComunas}
+                alEscribir={(v) => setF({ ...f, comuna: v })}
+                placeholder="San Miguel"
+                maxLength={30}
+              />
             </div>
           </div>
         </section>

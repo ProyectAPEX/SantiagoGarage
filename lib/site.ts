@@ -22,6 +22,10 @@ export const HORARIO_VISIBLE =
 /** Llamar por telefono */
 export const TEL_URL = `tel:+${TELEFONO_WHATSAPP}`;
 
+/** Instagram del taller. Se usa en el footer y en el PDF del presupuesto. */
+export const INSTAGRAM = "@santiagogarage.cl";
+export const INSTAGRAM_URL = "https://www.instagram.com/santiagogarage.cl/";
+
 /** Ficha del taller en Google Maps */
 export const GOOGLE_MAPS_URL =
   "https://www.google.com/maps/search/?api=1&query=Santiago+Garage+SPA+Desabolladura+Pintura+Automotriz+Ureta+Cox+1038+San+Miguel";
