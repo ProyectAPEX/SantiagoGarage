@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   generarPresupuestoPDF,
   calcularTotales,
@@ -101,6 +101,9 @@ export default function FormularioPresupuesto({
   const [error, setError] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [listo, setListo] = useState("");
+  /** Ultimo PDF generado, para abrirlo a mano si el telefono no lo descargó. */
+  const [pdfAMano, setPdfAMano] = useState("");
+  const urlPdf = useRef<string | null>(null);
 
   useEffect(() => {
     setNumero(siguienteNumero());
@@ -187,14 +190,28 @@ export default function FormularioPresupuesto({
     return `Hola ${nombre}, le adjuntamos la cotización N° ${datos.numero} de Santiago Garage. Cualquier duda quedamos atentos.`;
   }
 
-  /** Deja el PDF en el celular o computador del dueño, para adjuntarlo. */
+  /**
+   * Deja el PDF en el celular o computador del dueño, para adjuntarlo.
+   *
+   * Dos cosas que en el celular no perdonan:
+   * - el enlace tiene que estar DENTRO de la pagina, o Safari en iPhone
+   *   ignora el clic;
+   * - liberar la memoria del archivo apenas se dispara corta la descarga a
+   *   medias, asi que se libera un rato despues.
+   */
   function descargar(blob: Blob, nombreArchivo: string) {
+    if (urlPdf.current) URL.revokeObjectURL(urlPdf.current);
     const url = URL.createObjectURL(blob);
+    urlPdf.current = url;
+    setPdfAMano(url); // queda el enlace por si el telefono no descargo solo
+
     const a = document.createElement("a");
     a.href = url;
     a.download = nombreArchivo;
+    a.style.display = "none";
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
   }
 
   async function generar(modo: "pdf" | "whatsapp" | "compartir") {
@@ -253,7 +270,9 @@ export default function FormularioPresupuesto({
         // clip: WhatsApp no deja que una pagina web lo adjunte sola.
         descargar(blob, nombreArchivo);
         const chat = `https://wa.me/${numeroWhatsApp(f.telefono)}?text=${encodeURIComponent(texto)}`;
-        if (ventana) ventana.location.href = chat;
+        // Medio segundo antes de saltar a WhatsApp: si el telefono cambia de
+        // aplicacion en el mismo instante, la descarga se queda a medias.
+        if (ventana) setTimeout(() => (ventana.location.href = chat), 600);
         else window.open(chat, "_blank", "noopener,noreferrer");
         setListo("PDF descargado y chat del cliente abierto. Adjúntalo con el clip 📎 → Documentos: es el primero de la lista.");
       } else {
@@ -280,6 +299,7 @@ export default function FormularioPresupuesto({
     setNumero(siguienteNumero());
     setError("");
     setListo("");
+    setPdfAMano("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -524,6 +544,14 @@ export default function FormularioPresupuesto({
         {listo && (
           <p role="status" className="text-center text-[14px] font-semibold mb-3" style={{ color: "#16181D" }}>
             {listo} <button onClick={nuevo} className="underline ml-1">Nuevo presupuesto</button>
+          </p>
+        )}
+        {pdfAMano && (
+          <p className="text-center text-[13px] mb-3" style={{ color: "#6B7280" }}>
+            ¿No se descargó?{" "}
+            <a href={pdfAMano} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: "#16181D" }}>
+              Abrir el PDF
+            </a>
           </p>
         )}
       </div>
