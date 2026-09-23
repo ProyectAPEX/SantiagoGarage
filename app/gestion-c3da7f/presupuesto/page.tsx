@@ -1,7 +1,6 @@
 import { exigirAcceso } from "@/lib/acceso-panel";
 import { obtenerSolicitud } from "@/lib/solicitudes";
 import { obtenerPresupuesto } from "@/lib/presupuestos";
-import { baseConfigurada } from "@/lib/supabase";
 import { RUTA_PANEL } from "@/lib/panel";
 import FormularioPresupuesto from "./FormularioPresupuesto";
 import type { DatosIniciales, Copia } from "./FormularioPresupuesto";
@@ -75,7 +74,7 @@ export default async function PaginaPresupuesto({
     <FormularioPresupuesto
       inicial={inicial}
       copia={copia}
-      rutaBandeja={baseConfigurada() ? `${RUTA_PANEL}/solicitudes` : null}
+      rutaPanel={RUTA_PANEL}
       rutaHistorial={`${RUTA_PANEL}/historial`}
     />
   );

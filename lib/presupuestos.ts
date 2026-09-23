@@ -131,6 +131,52 @@ export async function listarPresupuestos(busca = ""): Promise<PresupuestoGuardad
   return (data ?? []) as unknown as PresupuestoGuardado[];
 }
 
+/**
+ * Primer día del mes en curso, en hora de Chile. Se arma con el desfase real
+ * del país (cambia con el horario de verano) para no contar de más ni de menos
+ * en los bordes del mes.
+ */
+function inicioDeMesEnChile(): string {
+  const ahora = new Date();
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Santiago",
+    year: "numeric",
+    month: "2-digit",
+    timeZoneName: "shortOffset",
+  }).formatToParts(ahora);
+  const valor = (tipo: string) => partes.find((p) => p.type === tipo)?.value ?? "";
+  const desfase = valor("timeZoneName").replace("GMT", "") || "-03"; // "-3" o "-03:00"
+  const [horas = "0", minutos = "00"] = desfase.replace(/^([+-])(\d)$/, "$10$2").split(":");
+  return `${valor("year")}-${valor("month")}-01T00:00:00${horas.padStart(3, "0")}:${minutos}`;
+}
+
+/** Números de la portada del panel: lo del mes y los últimos emitidos. */
+export async function resumenPanel(): Promise<{
+  mesCantidad: number;
+  mesTotal: number;
+  ultimos: PresupuestoGuardado[];
+} | null> {
+  const db = supabase();
+  if (!db) return null;
+
+  const [mes, ultimos] = await Promise.all([
+    db.from("presupuestos").select("total").gte("creado", inicioDeMesEnChile()),
+    db.from("presupuestos").select(COLUMNAS).order("creado", { ascending: false }).limit(5),
+  ]);
+
+  if (mes.error || ultimos.error) {
+    console.error("No se pudo armar el resumen:", mes.error?.message ?? ultimos.error?.message);
+    return null;
+  }
+
+  const totales = (mes.data ?? []) as { total: number }[];
+  return {
+    mesCantidad: totales.length,
+    mesTotal: totales.reduce((acc, t) => acc + (Number(t.total) || 0), 0),
+    ultimos: (ultimos.data ?? []) as unknown as PresupuestoGuardado[],
+  };
+}
+
 /** Un presupuesto del historial, para volver a abrirlo en el formulario. */
 export async function obtenerPresupuesto(id: string): Promise<PresupuestoGuardado | null> {
   const db = supabase();

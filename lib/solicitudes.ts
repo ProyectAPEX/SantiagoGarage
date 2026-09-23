@@ -61,6 +61,21 @@ export async function crearSolicitud(datos: NuevaSolicitud): Promise<boolean> {
  * Bandeja del admin: las nuevas primero, despues el resto; dentro de cada
  * grupo, lo mas reciente arriba. null = sin base o con error.
  */
+/**
+ * Cuántas solicitudes sin atender, para el globito del panel. Devuelve null
+ * si la tabla no existe (hoy es el caso: solo se creó la de presupuestos).
+ */
+export async function contarSolicitudesNuevas(): Promise<number | null> {
+  const sb = supabase();
+  if (!sb) return null;
+  const { count, error } = await sb
+    .from("solicitudes")
+    .select("id", { count: "exact", head: true })
+    .eq("estado", "nueva");
+  if (error) return null;
+  return count ?? 0;
+}
+
 export async function listarSolicitudes(): Promise<Solicitud[] | null> {
   const sb = supabase();
   if (!sb) return null;

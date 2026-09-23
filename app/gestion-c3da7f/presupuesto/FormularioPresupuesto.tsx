@@ -92,18 +92,18 @@ export type Copia = Omit<typeof vacio, "fecha"> & { items: ItemTrabajo[] };
 export default function FormularioPresupuesto({
   inicial,
   copia,
-  rutaBandeja,
+  rutaPanel,
   rutaHistorial,
 }: {
   inicial: DatosIniciales | null;
   copia: Copia | null;
-  /** null mientras no haya base de datos: no hay bandeja a la que volver */
-  rutaBandeja: string | null;
+  rutaPanel: string;
   rutaHistorial: string;
 }) {
   const [f, setF] = useState(() => {
     if (copia) {
-      const { items: _, ...campos } = copia; // los trabajos van en su propio estado
+      // los trabajos van en su propio estado, no en este
+      const campos = Object.fromEntries(Object.entries(copia).filter(([k]) => k !== "items"));
       return { ...vacio, ...campos };
     }
     return inicial
@@ -352,14 +352,12 @@ export default function FormularioPresupuesto({
         <div className="mb-6">
           <div className="flex items-center justify-between gap-3 mb-4">
             <span className="flex items-center gap-4">
-              <a href={rutaHistorial} className="font-display font-semibold text-[14px] py-1" style={{ color: "#16181D" }}>
+              <a href={rutaPanel} className="font-display font-semibold text-[14px] py-1" style={{ color: "#16181D" }}>
+                ← Panel
+              </a>
+              <a href={rutaHistorial} className="font-display font-semibold text-[14px] py-1" style={{ color: "#6B7280" }}>
                 Historial
               </a>
-              {rutaBandeja && (
-                <a href={rutaBandeja} className="font-display font-semibold text-[14px] py-1" style={{ color: "#6B7280" }}>
-                  Solicitudes
-                </a>
-              )}
             </span>
             <BotonSalir />
           </div>
