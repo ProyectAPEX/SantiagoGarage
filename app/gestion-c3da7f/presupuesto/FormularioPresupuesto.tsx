@@ -8,7 +8,7 @@ import {
 } from "@/lib/presupuesto-pdf";
 import { limpiarTexto, esTelefonoValido, esEmailValido } from "@/lib/sanitize";
 import { formatearRut, rutValido, limpiarRut } from "@/lib/rut";
-import { marcarCotizada, anotarPresupuesto } from "../acciones";
+import { marcarCotizada, anotarPresupuesto, enviarPorCorreo } from "../acciones";
 import BotonSalir from "../BotonSalir";
 import CampoSugerido from "./CampoSugerido";
 import { buscarMarcas, buscarModelos, buscarColores } from "@/lib/vehiculos";
@@ -126,6 +126,43 @@ export default function FormularioPresupuesto({
   const [textoMensaje, setTextoMensaje] = useState("");
   const urlPdf = useRef<string | null>(null);
   const archivoPdf = useRef<File | null>(null);
+
+  const [enviandoCorreo, setEnviandoCorreo] = useState(false);
+
+  /** Manda el PDF al correo del cliente, desde el buzón del taller. */
+  async function mandarCorreo() {
+    const file = archivoPdf.current;
+    if (!file) return;
+    if (!esEmailValido(f.email)) {
+      setListo("");
+      setError("Escribe el correo del cliente para enviárselo.");
+      return;
+    }
+    setEnviandoCorreo(true);
+    setError("");
+    setListo("");
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      let binario = "";
+      for (let i = 0; i < bytes.length; i += 8192) {
+        binario += String.fromCharCode(...bytes.subarray(i, i + 8192)); // por partes: de una sola vez revienta la pila
+      }
+      const motivo = await enviarPorCorreo({
+        para: limpiarTexto(f.email, 120),
+        nombreCliente: limpiarTexto(f.nombre, 80),
+        numero,
+        total: formatCLP(totales.total),
+        pdfBase64: btoa(binario),
+        nombreArchivo: file.name,
+      });
+      if (motivo) setError(motivo);
+      else setListo(`Cotización enviada a ${f.email}.`);
+    } catch {
+      setError("No se pudo enviar el correo. Intenta de nuevo.");
+    } finally {
+      setEnviandoCorreo(false);
+    }
+  }
 
   /** Compartir nacido de un toque: es el camino que el iPhone sí permite. */
   async function compartirPdf() {
@@ -625,7 +662,7 @@ export default function FormularioPresupuesto({
             <p className="text-[13px] mb-3" style={{ color: "#6B7280" }}>
               Si no se guardó solo, tócalo acá. “Enviar por WhatsApp” lo manda como archivo al chat que elijas.
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 mb-2">
               <a
                 href={pdfAMano.url}
                 download={pdfAMano.nombre}
@@ -645,6 +682,16 @@ export default function FormularioPresupuesto({
                 Enviar por WhatsApp
               </button>
             </div>
+            {/* El correo es el unico camino donde el PDF sale solo, adjunto */}
+            <button
+              type="button"
+              onClick={mandarCorreo}
+              disabled={enviandoCorreo}
+              className="w-full font-display font-semibold text-[14px] py-3 rounded-xl disabled:opacity-60"
+              style={{ border: "1px solid #D5D2CC", color: "#16181D" }}
+            >
+              {enviandoCorreo ? "Enviando..." : f.email ? `Enviar por correo a ${f.email}` : "Enviar por correo"}
+            </button>
           </div>
         )}
       </div>

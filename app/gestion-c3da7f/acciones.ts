@@ -2,6 +2,8 @@
 import { exigirAcceso } from "@/lib/acceso-panel";
 import { cambiarEstado } from "@/lib/solicitudes";
 import { guardarPresupuesto, type EntradaPresupuesto } from "@/lib/presupuestos";
+import { enviarPresupuestoPorCorreo, type CorreoPresupuesto } from "@/lib/correo";
+import { esEmailValido } from "@/lib/sanitize";
 
 // Acciones del panel. Next las expone como endpoints que se pueden llamar
 // desde cualquier ruta del sitio, no solo desde el panel: por eso cada una
@@ -25,6 +27,18 @@ export async function anotarPresupuesto(entrada: EntradaPresupuesto): Promise<st
   await exigirAcceso();
   if (!entrada || typeof entrada !== "object") return null;
   return guardarPresupuesto(entrada);
+}
+
+/**
+ * Manda el presupuesto al correo del cliente, con el PDF adjunto. Devuelve ""
+ * si salio bien, o el motivo para mostrarlo en el panel.
+ */
+export async function enviarPorCorreo(datos: CorreoPresupuesto): Promise<string> {
+  await exigirAcceso();
+  if (!datos || typeof datos !== "object") return "Faltan los datos del presupuesto.";
+  if (!esEmailValido(datos.para ?? "")) return "El correo del cliente no es válido.";
+  if (typeof datos.pdfBase64 !== "string" || !datos.pdfBase64) return "El PDF llegó vacío.";
+  return enviarPresupuestoPorCorreo(datos);
 }
 
 export async function reabrirSolicitud(id: string): Promise<boolean> {

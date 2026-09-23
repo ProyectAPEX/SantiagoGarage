@@ -41,6 +41,11 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Oculta el header X-Powered-By: Next.js (menos información para atacantes)
   poweredByHeader: false,
+  experimental: {
+    // El presupuesto viaja al servidor para mandarlo por correo: un PDF con el
+    // logo pesa más que el límite de 1 MB que trae Next por defecto.
+    serverActions: { bodySizeLimit: "4mb" },
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
