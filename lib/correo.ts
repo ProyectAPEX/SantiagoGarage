@@ -1,5 +1,6 @@
 import "server-only";
 import nodemailer from "nodemailer";
+import { EMAIL_CONTACTO } from "@/lib/site";
 
 /**
  * Envio del presupuesto por correo, desde el buzon del propio taller
@@ -58,6 +59,9 @@ export async function enviarPresupuestoPorCorreo(datos: CorreoPresupuesto): Prom
   try {
     await transporte().sendMail({
       from: `Santiago Garage <${process.env.SMTP_USER}>`,
+      // El buzon de cotizaciones es solo para enviar: si el cliente responde,
+      // la respuesta cae en el correo que el taller si revisa.
+      replyTo: process.env.SMTP_RESPUESTAS || EMAIL_CONTACTO,
       to: datos.para,
       subject: `Cotización N° ${datos.numero} · Santiago Garage`,
       text: texto,
