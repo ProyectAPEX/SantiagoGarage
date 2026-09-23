@@ -1,9 +1,10 @@
 import { exigirAcceso } from "@/lib/acceso-panel";
 import { obtenerSolicitud } from "@/lib/solicitudes";
+import { obtenerPresupuesto } from "@/lib/presupuestos";
 import { baseConfigurada } from "@/lib/supabase";
 import { RUTA_PANEL } from "@/lib/panel";
 import FormularioPresupuesto from "./FormularioPresupuesto";
-import type { DatosIniciales } from "./FormularioPresupuesto";
+import type { DatosIniciales, Copia } from "./FormularioPresupuesto";
 
 export const dynamic = "force-dynamic";
 
@@ -22,13 +23,40 @@ function separarVehiculo(texto: string | null) {
 export default async function PaginaPresupuesto({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string }>;
+  searchParams: Promise<{ id?: string; copiar?: string }>;
 }) {
   await exigirAcceso();
-  const { id } = await searchParams;
+  const { id, copiar } = await searchParams;
 
+  // Del historial: se abre con todo cargado, pero con número nuevo
+  let copia: Copia | null = null;
+  if (copiar) {
+    const p = await obtenerPresupuesto(copiar);
+    if (p) {
+      copia = {
+        nombre: p.cliente_nombre,
+        rut: p.cliente_rut ?? "",
+        telefono: p.cliente_telefono ?? "",
+        email: p.cliente_email ?? "",
+        domicilio: p.cliente_domicilio ?? "",
+        comuna: p.cliente_comuna ?? "",
+        marca: p.vehiculo_marca ?? "",
+        modelo: p.vehiculo_modelo ?? "",
+        anio: p.vehiculo_anio ?? "",
+        patente: p.vehiculo_patente ?? "",
+        color: p.vehiculo_color ?? "",
+        descuento: p.descuento ? String(p.descuento) : "",
+        plazoDias: p.plazo_dias || "5",
+        validezDias: p.validez_dias || "15",
+        observaciones: p.observaciones ?? "",
+        items: (p.items ?? []).map((i) => ({ descripcion: i.descripcion, precio: i.precio })),
+      };
+    }
+  }
+
+  // De una solicitud de la web
   let inicial: DatosIniciales | null = null;
-  if (id) {
+  if (!copia && id) {
     const s = await obtenerSolicitud(id);
     if (s) {
       inicial = {
@@ -43,5 +71,12 @@ export default async function PaginaPresupuesto({
 
   // La ruta del panel se pasa desde el servidor: si el componente del
   // navegador la importara, quedaria escrita en el JavaScript publico.
-  return <FormularioPresupuesto inicial={inicial} rutaBandeja={baseConfigurada() ? RUTA_PANEL : null} />;
+  return (
+    <FormularioPresupuesto
+      inicial={inicial}
+      copia={copia}
+      rutaBandeja={baseConfigurada() ? `${RUTA_PANEL}/solicitudes` : null}
+      rutaHistorial={`${RUTA_PANEL}/historial`}
+    />
+  );
 }

@@ -6,9 +6,9 @@ import {
   formatCLP,
   type ItemTrabajo,
 } from "@/lib/presupuesto-pdf";
-import { limpiarTexto, esTelefonoValido } from "@/lib/sanitize";
+import { limpiarTexto, esTelefonoValido, esEmailValido } from "@/lib/sanitize";
 import { formatearRut, rutValido, limpiarRut } from "@/lib/rut";
-import { marcarCotizada } from "../acciones";
+import { marcarCotizada, anotarPresupuesto } from "../acciones";
 import BotonSalir from "../BotonSalir";
 import CampoSugerido from "./CampoSugerido";
 import { buscarMarcas, buscarModelos, buscarColores } from "@/lib/vehiculos";
@@ -31,6 +31,7 @@ const vacio = {
   nombre: "",
   rut: "",
   telefono: "",
+  email: "",
   domicilio: "",
   comuna: "",
   marca: "",
@@ -85,21 +86,34 @@ function guardarNumero(numero: string) {
   }
 }
 
+/** Un presupuesto del historial que se abre de nuevo (con número nuevo). */
+export type Copia = Omit<typeof vacio, "fecha"> & { items: ItemTrabajo[] };
+
 export default function FormularioPresupuesto({
   inicial,
+  copia,
   rutaBandeja,
+  rutaHistorial,
 }: {
   inicial: DatosIniciales | null;
+  copia: Copia | null;
   /** null mientras no haya base de datos: no hay bandeja a la que volver */
   rutaBandeja: string | null;
+  rutaHistorial: string;
 }) {
-  const [f, setF] = useState(() =>
-    inicial
+  const [f, setF] = useState(() => {
+    if (copia) {
+      const { items: _, ...campos } = copia; // los trabajos van en su propio estado
+      return { ...vacio, ...campos };
+    }
+    return inicial
       ? { ...vacio, nombre: inicial.nombre, telefono: inicial.telefono, marca: inicial.marca, modelo: inicial.modelo, anio: inicial.anio }
-      : vacio
-  );
+      : vacio;
+  });
   const [solicitud, setSolicitud] = useState<DatosIniciales | null>(inicial);
-  const [items, setItems] = useState<Linea[]>([{ ...lineaVacia }]);
+  const [items, setItems] = useState<Linea[]>(() =>
+    copia?.items?.length ? copia.items.map((i) => ({ servicio: "", ...i })) : [{ ...lineaVacia }]
+  );
   const [numero, setNumero] = useState("—");
   const [error, setError] = useState("");
   const [ocupado, setOcupado] = useState(false);
@@ -172,6 +186,7 @@ export default function FormularioPresupuesto({
         nombre: limpiarTexto(f.nombre, 80),
         rut: limpiarTexto(f.rut, 12),
         telefono: limpiarTexto(f.telefono, 17),
+        email: limpiarTexto(f.email, 120),
         domicilio: limpiarTexto(f.domicilio, 60),
         comuna: limpiarTexto(f.comuna, 30),
       },
@@ -196,6 +211,7 @@ export default function FormularioPresupuesto({
     if (!f.nombre.trim()) return "Falta el nombre del cliente.";
     if (f.rut && !rutValido(f.rut)) return "El RUT no es válido: revisa el dígito verificador.";
     if (f.telefono && !esTelefonoValido(f.telefono)) return "El teléfono no parece válido.";
+    if (f.email && !esEmailValido(f.email)) return "El correo no parece válido.";
     if (!items.some((i) => i.descripcion.trim())) return "Agrega al menos un trabajo.";
     return "";
   }
@@ -291,6 +307,17 @@ export default function FormularioPresupuesto({
         setListo("PDF descargado.");
       }
       guardarNumero(datos.numero);
+
+      // Queda en el historial. Si no hay base conectada devuelve null y no pasa nada:
+      // el presupuesto ya se generó igual.
+      anotarPresupuesto({
+        ...datos,
+        subtotal: totales.subtotal,
+        iva: totales.iva,
+        total: totales.total,
+        enviadoPor: modo === "whatsapp" ? "whatsapp" : "pdf",
+      }).catch(() => null);
+
       if (solicitud) {
         const ok = await marcarCotizada(solicitud.solicitudId).catch(() => false);
         if (ok) setSolicitud(null);
@@ -324,13 +351,16 @@ export default function FormularioPresupuesto({
         {/* Encabezado */}
         <div className="mb-6">
           <div className="flex items-center justify-between gap-3 mb-4">
-            {rutaBandeja ? (
-              <a href={rutaBandeja} className="inline-flex items-center gap-1 font-display font-semibold text-[14px] py-1" style={{ color: "#16181D" }}>
-                ← Solicitudes
+            <span className="flex items-center gap-4">
+              <a href={rutaHistorial} className="font-display font-semibold text-[14px] py-1" style={{ color: "#16181D" }}>
+                Historial
               </a>
-            ) : (
-              <span />
-            )}
+              {rutaBandeja && (
+                <a href={rutaBandeja} className="font-display font-semibold text-[14px] py-1" style={{ color: "#6B7280" }}>
+                  Solicitudes
+                </a>
+              )}
+            </span>
             <BotonSalir />
           </div>
           <p className="font-display text-[12px] font-medium tracking-[2px] uppercase mb-1" style={{ color: "#D0021B" }}>
@@ -394,6 +424,19 @@ export default function FormularioPresupuesto({
               <label className={label} htmlFor="telefono">WhatsApp</label>
               <input id="telefono" className={input} value={f.telefono} onChange={set("telefono")} placeholder="+56 9 ..." inputMode="tel" maxLength={17} />
             </div>
+          </div>
+          <div className="mt-4">
+            <label className={label} htmlFor="email">Correo</label>
+            <input
+              id="email"
+              className={input}
+              value={f.email}
+              onChange={set("email")}
+              placeholder="cliente@correo.cl"
+              inputMode="email"
+              autoComplete="off"
+              maxLength={120}
+            />
           </div>
           <div className="grid grid-cols-2 gap-3 mt-4">
             <div>

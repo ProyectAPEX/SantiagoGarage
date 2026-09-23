@@ -1,6 +1,7 @@
 "use server";
 import { exigirAcceso } from "@/lib/acceso-panel";
 import { cambiarEstado } from "@/lib/solicitudes";
+import { guardarPresupuesto, type EntradaPresupuesto } from "@/lib/presupuestos";
 
 // Acciones del panel. Next las expone como endpoints que se pueden llamar
 // desde cualquier ruta del sitio, no solo desde el panel: por eso cada una
@@ -14,6 +15,16 @@ export async function marcarCotizada(id: string): Promise<boolean> {
 export async function descartarSolicitud(id: string): Promise<boolean> {
   await exigirAcceso();
   return typeof id === "string" && cambiarEstado(id, "descartada");
+}
+
+/**
+ * Guarda en el historial el presupuesto recien emitido. Si no hay base
+ * conectada devuelve null y el panel sigue funcionando igual.
+ */
+export async function anotarPresupuesto(entrada: EntradaPresupuesto): Promise<string | null> {
+  await exigirAcceso();
+  if (!entrada || typeof entrada !== "object") return null;
+  return guardarPresupuesto(entrada);
 }
 
 export async function reabrirSolicitud(id: string): Promise<boolean> {
