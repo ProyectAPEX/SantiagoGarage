@@ -123,7 +123,6 @@ export default function FormularioPresupuesto({
    * toque directo, asi que ademas de intentarla sola se deja a la vista.
    */
   const [pdfAMano, setPdfAMano] = useState({ url: "", nombre: "" });
-  const [textoMensaje, setTextoMensaje] = useState("");
   const urlPdf = useRef<string | null>(null);
   const archivoPdf = useRef<File | null>(null);
 
@@ -161,22 +160,6 @@ export default function FormularioPresupuesto({
       setError("No se pudo enviar el correo. Intenta de nuevo.");
     } finally {
       setEnviandoCorreo(false);
-    }
-  }
-
-  /** Compartir nacido de un toque: es el camino que el iPhone sí permite. */
-  async function compartirPdf() {
-    const file = archivoPdf.current;
-    if (!file) return;
-    try {
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], text: textoMensaje });
-      } else {
-        setError("Este teléfono no permite compartir archivos. Usa “Guardar el PDF”.");
-      }
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") return;
-      setError("No se pudo compartir el PDF. Usa “Guardar el PDF”.");
     }
   }
 
@@ -253,22 +236,6 @@ export default function FormularioPresupuesto({
     return "";
   }
 
-  /** WhatsApp del cliente en formato internacional: 9 1234 5678 -> 56912345678 */
-  function numeroWhatsApp(telefono: string): string {
-    const d = telefono.replace(/\D/g, "");
-    if (!d) return "";
-    return d.startsWith("56") ? d : "56" + d.replace(/^0+/, "");
-  }
-
-  /**
-   * Mensaje corto que acompaña al PDF. El detalle va en el PDF, no escrito
-   * en el chat.
-   */
-  function mensajeWhatsApp(datos: ReturnType<typeof armarDatos>): string {
-    const nombre = datos.cliente.nombre.split(" ")[0] || "";
-    return `Hola ${nombre}, le adjuntamos la cotización N° ${datos.numero} de Santiago Garage. Cualquier duda quedamos atentos.`;
-  }
-
   /**
    * Deja el PDF en el celular o computador del dueño, para adjuntarlo.
    *
@@ -293,10 +260,8 @@ export default function FormularioPresupuesto({
     a.remove();
   }
 
-  async function generar(modo: "pdf" | "whatsapp") {
-    const err =
-      validar() ||
-      (modo === "whatsapp" && !numeroWhatsApp(f.telefono) ? "Escribe el WhatsApp del cliente para poder enviárselo." : "");
+  async function generar() {
+    const err = validar();
     if (err) {
       setListo("");
       setError(err);
@@ -306,43 +271,14 @@ export default function FormularioPresupuesto({
     setOcupado(true);
     setListo("");
 
-    // La ventana se abre en el toque mismo, todavia en blanco: si se abriera
-    // despues de generar el PDF, el navegador del celular la bloquearia por
-    // emergente. Al final se le pone la direccion del chat.
-    const ventana = modo === "whatsapp" ? window.open("", "_blank") : null;
-    if (ventana) {
-      try {
-        ventana.opener = null;
-      } catch {
-        /* algunos navegadores no dejan tocarlo: no pasa nada */
-      }
-    }
-
     try {
       const datos = armarDatos();
       const blob = await generarPresupuestoPDF(datos);
       const nombreArchivo = `Presupuesto-${datos.numero}-${datos.cliente.nombre.split(" ")[0] || "cliente"}.pdf`;
-      const file = new File([blob], nombreArchivo, { type: "application/pdf" });
-      archivoPdf.current = file; // para los botones de abajo, que sí nacen de un toque
+      archivoPdf.current = new File([blob], nombreArchivo, { type: "application/pdf" });
 
-      const texto = mensajeWhatsApp(datos);
-      setTextoMensaje(texto);
-
-      if (modo === "whatsapp") {
-        // El chat se abre con el numero escrito en el formulario, con el
-        // detalle ya escrito. El PDF queda descargado para adjuntarlo con el
-        // clip: WhatsApp no deja que una pagina web lo adjunte sola.
-        descargar(blob, nombreArchivo);
-        const chat = `https://wa.me/${numeroWhatsApp(f.telefono)}?text=${encodeURIComponent(texto)}`;
-        // Medio segundo antes de saltar a WhatsApp: si el telefono cambia de
-        // aplicacion en el mismo instante, la descarga se queda a medias.
-        if (ventana) setTimeout(() => (ventana.location.href = chat), 600);
-        else window.open(chat, "_blank", "noopener,noreferrer");
-        setListo("Chat del cliente abierto con el saludo. El PDF quedó acá abajo para guardarlo o mandarlo.");
-      } else {
-        descargar(blob, nombreArchivo);
-        setListo("PDF descargado.");
-      }
+      descargar(blob, nombreArchivo);
+      setListo("Cotización lista.");
       guardarNumero(datos.numero);
 
       // Queda en el historial. Si no hay base conectada devuelve null y no pasa nada:
@@ -352,7 +288,7 @@ export default function FormularioPresupuesto({
         subtotal: totales.subtotal,
         iva: totales.iva,
         total: totales.total,
-        enviadoPor: modo === "whatsapp" ? "whatsapp" : "pdf",
+        enviadoPor: "pdf",
       }).catch(() => null);
 
       if (solicitud) {
@@ -360,7 +296,6 @@ export default function FormularioPresupuesto({
         if (ok) setSolicitud(null);
       }
     } catch {
-      ventana?.close(); // no dejar la pestaña en blanco dando vueltas
       setError("No se pudo generar el PDF. Intenta de nuevo.");
     } finally {
       setOcupado(false);
@@ -456,7 +391,7 @@ export default function FormularioPresupuesto({
               )}
             </div>
             <div>
-              <label className={label} htmlFor="telefono">WhatsApp</label>
+              <label className={label} htmlFor="telefono">Teléfono</label>
               <input id="telefono" className={input} value={f.telefono} onChange={set("telefono")} placeholder="+56 9 ..." inputMode="tel" maxLength={17} />
             </div>
           </div>
@@ -660,38 +595,27 @@ export default function FormularioPresupuesto({
               PDF listo
             </p>
             <p className="text-[13px] mb-3" style={{ color: "#6B7280" }}>
-              Si no se guardó solo, tócalo acá. “Enviar por WhatsApp” lo manda como archivo al chat que elijas.
+              Se envía al correo del cliente con el PDF adjunto. Si el teléfono no lo guardó solo, tócalo acá.
             </p>
-            <div className="flex gap-2 mb-2">
-              <a
-                href={pdfAMano.url}
-                download={pdfAMano.nombre}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 text-center font-display font-semibold text-[14px] py-3 rounded-xl"
-                style={{ border: "1px solid #D5D2CC", color: "#16181D" }}
-              >
-                Guardar el PDF
-              </a>
-              <button
-                type="button"
-                onClick={compartirPdf}
-                className="flex-1 font-display font-semibold text-[14px] py-3 rounded-xl"
-                style={{ background: "#16181D", color: "#fff" }}
-              >
-                Enviar por WhatsApp
-              </button>
-            </div>
-            {/* El correo es el unico camino donde el PDF sale solo, adjunto */}
             <button
               type="button"
               onClick={mandarCorreo}
               disabled={enviandoCorreo}
-              className="w-full font-display font-semibold text-[14px] py-3 rounded-xl disabled:opacity-60"
-              style={{ border: "1px solid #D5D2CC", color: "#16181D" }}
+              className="w-full font-display font-semibold text-[15px] py-3.5 rounded-xl mb-2 disabled:opacity-60"
+              style={{ background: "#16181D", color: "#fff" }}
             >
               {enviandoCorreo ? "Enviando..." : f.email ? `Enviar por correo a ${f.email}` : "Enviar por correo"}
             </button>
+            <a
+              href={pdfAMano.url}
+              download={pdfAMano.nombre}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-center font-display font-semibold text-[14px] py-3 rounded-xl"
+              style={{ border: "1px solid #D5D2CC", color: "#16181D" }}
+            >
+              Guardar el PDF
+            </a>
           </div>
         )}
       </div>
@@ -710,26 +634,15 @@ export default function FormularioPresupuesto({
               {formatCLP(totales.total)}
             </span>
           </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => generar("pdf")}
-              disabled={ocupado}
-              className="font-display font-semibold text-[14px] px-4 py-3.5 rounded-full border disabled:opacity-50"
-              style={{ borderColor: "#D5D2CC", color: "#16181D" }}
-            >
-              PDF
-            </button>
-            <button
-              type="button"
-              onClick={() => generar("whatsapp")}
-              disabled={ocupado}
-              className="font-display font-semibold text-[15px] flex-1 py-3.5 rounded-full disabled:opacity-60"
-              style={{ background: "#D0021B", color: "#fff" }}
-            >
-              {ocupado ? "Generando..." : "Enviar cotización"}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={generar}
+            disabled={ocupado}
+            className="w-full font-display font-semibold text-[16px] py-4 rounded-full disabled:opacity-60"
+            style={{ background: "#D0021B", color: "#fff" }}
+          >
+            {ocupado ? "Generando..." : "Generar cotización"}
+          </button>
         </div>
       </div>
     </div>

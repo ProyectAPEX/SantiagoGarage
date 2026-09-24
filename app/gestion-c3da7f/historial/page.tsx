@@ -85,7 +85,6 @@ export default async function Historial({ searchParams }: { searchParams: Promis
                   <span>{cuando(p.creado)}</span>
                   {p.vehiculo_patente && <span className="uppercase">{p.vehiculo_patente}</span>}
                   {(p.vehiculo_marca || p.vehiculo_modelo) && <span>{[p.vehiculo_marca, p.vehiculo_modelo].filter(Boolean).join(" ")}</span>}
-                  {p.enviado_por === "whatsapp" && <span>Enviado por WhatsApp</span>}
                 </div>
 
                 <ul className="text-[14px] mb-4 list-none flex flex-col gap-0.5" style={{ color: "#16181D" }}>
