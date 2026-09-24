@@ -5,6 +5,7 @@ import { baseConfigurada } from "@/lib/supabase";
 import { formatCLP } from "@/lib/presupuesto-pdf";
 import { RUTA_PANEL } from "@/lib/panel";
 import BotonSalir from "../BotonSalir";
+import BotonBorrar from "./BotonBorrar";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Historial" };
@@ -99,13 +100,16 @@ export default async function Historial({ searchParams }: { searchParams: Promis
                   )}
                 </ul>
 
-                <Link
-                  href={`${RUTA_PANEL}/presupuesto?copiar=${p.id}`}
-                  className="inline-block font-display font-semibold text-[14px] px-4 py-2.5 rounded-lg"
-                  style={{ border: "1px solid #D5D2CC", color: "#16181D" }}
-                >
-                  Abrir de nuevo
-                </Link>
+                <div className="flex items-center justify-between gap-2">
+                  <Link
+                    href={`${RUTA_PANEL}/presupuesto?copiar=${p.id}`}
+                    className="font-display font-semibold text-[14px] px-4 py-2.5 rounded-lg"
+                    style={{ border: "1px solid #D5D2CC", color: "#16181D" }}
+                  >
+                    Abrir de nuevo
+                  </Link>
+                  <BotonBorrar id={p.id} cliente={p.cliente_nombre} />
+                </div>
               </article>
             ))}
           </div>

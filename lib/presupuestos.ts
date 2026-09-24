@@ -177,6 +177,18 @@ export async function resumenPanel(): Promise<{
   };
 }
 
+/** Borra un presupuesto del historial. No se puede deshacer. */
+export async function eliminarPresupuesto(id: string): Promise<boolean> {
+  const db = supabase();
+  if (!db || !ES_UUID.test(id)) return false;
+  const { error } = await db.from("presupuestos").delete().eq("id", id);
+  if (error) {
+    console.error("No se pudo borrar el presupuesto:", error.message);
+    return false;
+  }
+  return true;
+}
+
 /** Un presupuesto del historial, para volver a abrirlo en el formulario. */
 export async function obtenerPresupuesto(id: string): Promise<PresupuestoGuardado | null> {
   const db = supabase();

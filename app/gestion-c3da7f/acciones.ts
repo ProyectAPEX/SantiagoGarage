@@ -1,7 +1,7 @@
 "use server";
 import { exigirAcceso } from "@/lib/acceso-panel";
 import { cambiarEstado } from "@/lib/solicitudes";
-import { guardarPresupuesto, type EntradaPresupuesto } from "@/lib/presupuestos";
+import { guardarPresupuesto, eliminarPresupuesto, type EntradaPresupuesto } from "@/lib/presupuestos";
 import { enviarPresupuestoPorCorreo, type CorreoPresupuesto } from "@/lib/correo";
 import { esEmailValido } from "@/lib/sanitize";
 
@@ -27,6 +27,12 @@ export async function anotarPresupuesto(entrada: EntradaPresupuesto): Promise<st
   await exigirAcceso();
   if (!entrada || typeof entrada !== "object") return null;
   return guardarPresupuesto(entrada);
+}
+
+/** Borra un presupuesto del historial. El panel pide confirmacion antes. */
+export async function borrarPresupuesto(id: string): Promise<boolean> {
+  await exigirAcceso();
+  return typeof id === "string" && eliminarPresupuesto(id);
 }
 
 /**
