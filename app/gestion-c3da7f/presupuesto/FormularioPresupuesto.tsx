@@ -260,8 +260,10 @@ export default function FormularioPresupuesto({
     a.remove();
   }
 
-  async function generar() {
-    const err = validar();
+  async function generar(modo: "pdf" | "correo") {
+    const err =
+      validar() ||
+      (modo === "correo" && !esEmailValido(f.email) ? "Escribe el correo del cliente para enviárselo." : "");
     if (err) {
       setListo("");
       setError(err);
@@ -280,6 +282,7 @@ export default function FormularioPresupuesto({
       descargar(blob, nombreArchivo);
       setListo("Cotización lista.");
       guardarNumero(datos.numero);
+      if (modo === "correo") await mandarCorreo(); // el PDF ya está listo: sale de inmediato
 
       // Queda en el historial. Si no hay base conectada devuelve null y no pasa nada:
       // el presupuesto ya se generó igual.
@@ -634,15 +637,26 @@ export default function FormularioPresupuesto({
               {formatCLP(totales.total)}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={generar}
-            disabled={ocupado}
-            className="w-full font-display font-semibold text-[16px] py-4 rounded-full disabled:opacity-60"
-            style={{ background: "#D0021B", color: "#fff" }}
-          >
-            {ocupado ? "Generando..." : "Generar cotización"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => generar("pdf")}
+              disabled={ocupado || enviandoCorreo}
+              className="font-display font-semibold text-[14px] px-5 py-3.5 rounded-full border disabled:opacity-50"
+              style={{ borderColor: "#D5D2CC", color: "#16181D" }}
+            >
+              Solo PDF
+            </button>
+            <button
+              type="button"
+              onClick={() => generar("correo")}
+              disabled={ocupado || enviandoCorreo}
+              className="font-display font-semibold text-[15px] flex-1 py-3.5 rounded-full disabled:opacity-60"
+              style={{ background: "#D0021B", color: "#fff" }}
+            >
+              {ocupado ? "Generando..." : enviandoCorreo ? "Enviando..." : "Enviar al cliente"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
