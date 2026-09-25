@@ -13,7 +13,7 @@ import BotonSalir from "../BotonSalir";
 import CampoSugerido from "./CampoSugerido";
 import { buscarMarcas, buscarModelos, buscarColores } from "@/lib/vehiculos";
 import { buscarComunas } from "@/lib/comunas";
-import { SERVICIOS } from "@/lib/trabajos";
+import { SERVICIOS, OTRO } from "@/lib/trabajos";
 
 /** Datos que llegan de una solicitud de la web, para precargar el formulario. */
 export type DatosIniciales = {
@@ -186,11 +186,14 @@ export default function FormularioPresupuesto({
   function elegirServicio(i: number, servicio: string) {
     const copia = [...items];
     const { servicio: antes, descripcion } = copia[i];
+    // "Otro" no encabeza nada: el detalle se escribe entero a mano
+    const encabezado = servicio === OTRO ? "" : servicio;
+    const encabezadoAntes = antes === OTRO ? "" : antes;
     let nueva = descripcion;
-    if (!descripcion.trim()) nueva = servicio ? `${servicio} de ` : "";
-    else if (antes && descripcion.startsWith(antes)) {
-      const resto = descripcion.slice(antes.length);
-      nueva = servicio ? servicio + resto : resto.replace(/^\s*de\s+/i, "");
+    if (!descripcion.trim()) nueva = encabezado ? `${encabezado} de ` : "";
+    else if (encabezadoAntes && descripcion.startsWith(encabezadoAntes)) {
+      const resto = descripcion.slice(encabezadoAntes.length);
+      nueva = encabezado ? encabezado + resto : resto.replace(/^\s*de\s+/i, "");
     }
     copia[i] = { ...copia[i], servicio, descripcion: nueva.slice(0, 200) };
     setItems(copia);
@@ -523,14 +526,20 @@ export default function FormularioPresupuesto({
                 ))}
               </select>
 
-              <label className={label} htmlFor={`detalle-${i}`}>Detalle</label>
+              <label className={label} htmlFor={`detalle-${i}`}>
+                {item.servicio === OTRO ? "Qué trabajo es" : "Detalle"}
+              </label>
               <textarea
                 id={`detalle-${i}`}
                 className={input + " mb-3"}
                 rows={2}
                 value={item.descripcion}
                 onChange={(e) => setItem(i, "descripcion", e.target.value)}
-                placeholder="Ej: Desabolladura y pintura de puerta trasera derecha"
+                placeholder={
+                  item.servicio === OTRO
+                    ? "Escribe el trabajo completo. Ej: Cambio de parabrisas delantero"
+                    : "Ej: Desabolladura y pintura de puerta trasera derecha"
+                }
                 maxLength={200}
                 style={{ resize: "vertical" }}
               />
