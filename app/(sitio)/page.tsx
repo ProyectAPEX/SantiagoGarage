@@ -6,6 +6,7 @@ import Reveal from "@/components/anim/Reveal";
 import Tilt from "@/components/anim/Tilt";
 import CountUp from "@/components/anim/CountUp";
 import { GOOGLE_MAPS_URL, FOTO_INICIO, FOTO_INICIO_ENCUADRE } from "@/lib/site";
+import { SERVICIOS } from "@/lib/servicios";
 
 const Icono = {
   barras: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><path d="M6 20V14M12 20V8M18 20V4" /></svg>,
@@ -137,6 +138,57 @@ export default function Inicio() {
               <div key={i} className={clase}>{contenido}</div>
             );
           })}
+        </div>
+      </section>
+
+      {/* SERVICIOS: los mismos de la página de servicios, sin fotos */}
+      <section className="px-5 sm:px-10 py-16 sm:py-20" aria-label="Servicios del taller">
+        <div className="max-w-[1200px] mx-auto">
+          <Reveal>
+            <div className="mb-12 text-center">
+              <p className="font-display text-[12px] sm:text-[13px] font-bold tracking-[2.5px] uppercase mb-3" style={{ color: "#D0021B" }}>
+                Lo que hacemos
+              </p>
+              <h2 className="font-display font-bold uppercase" style={{ fontSize: "clamp(32px,4vw,52px)", lineHeight: 1.1, letterSpacing: "-1.5px" }}>
+                Nuestros <span style={{ color: "#D0021B" }}>servicios</span>
+              </h2>
+            </div>
+          </Reveal>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+            {SERVICIOS.map((s, i) => (
+              <Reveal key={s.slug} delay={(i % 3) * 0.1} y={40}>
+                <Link
+                  href={`/servicios#${s.slug}`}
+                  className="flex flex-col h-full p-5 sm:p-7 rounded-xl sm:rounded-2xl transition-colors hover:border-[#16181D]"
+                  style={{ background: "#fff", border: "1px solid #E8E6E1" }}
+                >
+                  <div className="flex items-baseline gap-3 mb-2">
+                    <span className="font-display font-bold text-[13px] sm:text-[15px]" style={{ color: "#D0021B" }}>{s.n}</span>
+                    <span className="font-display text-[10px] sm:text-[11px] font-semibold tracking-[1px] uppercase" style={{ color: "#9CA3AF" }}>
+                      {s.tag}
+                    </span>
+                  </div>
+                  <h3 className="font-display font-semibold text-[17px] sm:text-[20px] mb-2" style={{ letterSpacing: "-0.5px", color: "#16181D" }}>
+                    {s.name}
+                  </h3>
+                  <p className="text-[13.5px] sm:text-[15px] leading-relaxed" style={{ color: "#6B7280" }}>{s.desc}</p>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+
+          <Reveal>
+            <div className="flex justify-center mt-10">
+              <Link
+                href="/servicios"
+                className="font-display font-semibold text-[15px] px-7 py-4 rounded-full"
+                style={{ border: "1px solid #D5D2CC", color: "#16181D" }}
+              >
+                Ver el detalle de cada servicio
+              </Link>
+            </div>
+          </Reveal>
         </div>
       </section>
 
