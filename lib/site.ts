@@ -3,7 +3,13 @@
 
 export const TELEFONO_WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP ?? "56986111234";
 export const TELEFONO_VISIBLE = process.env.NEXT_PUBLIC_WHATSAPP_VISIBLE ?? "+56 9 8611 1234";
-export const EMAIL_CONTACTO = process.env.NEXT_PUBLIC_EMAIL ?? "info@santiagogarage.cl";
+/**
+ * Correo publico del taller. A proposito NO sale de una variable de entorno:
+ * es un dato publico que cambia muy de vez en cuando, y tenerlo aca evita que
+ * el sitio publicado muestre uno viejo si la variable de Vercel queda atras.
+ * Para cambiarlo, se cambia esta linea.
+ */
+export const EMAIL_CONTACTO = "cotizaciones.santiago@santiagogarage.cl";
 
 export const WA_URL = `https://wa.me/${TELEFONO_WHATSAPP}`;
 
