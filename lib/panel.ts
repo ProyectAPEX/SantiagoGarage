@@ -20,9 +20,20 @@ export const DURACION_SESION = 60 * 60 * 24 * 7; // 7 dias, en segundos
 
 const enc = new TextEncoder();
 
+/**
+ * Lee una variable limpiando espacios y comillas de los extremos.
+ *
+ * Pasa seguido: se pega la clave en Vercel con las comillas que llevaba en el
+ * .env, o con un espacio al final, y despues nadie entiende por que el panel
+ * dice "clave incorrecta" si la clave "es la correcta".
+ */
+function variable(nombre: string): string {
+  return (process.env[nombre] ?? "").trim().replace(/^(['"])([\s\S]*)\1$/, "$2");
+}
+
 /** Sin clave ni secreto configurados, nadie entra (nunca se abre por defecto). */
 export function panelConfigurado(): boolean {
-  return Boolean(process.env.PANEL_CLAVE && process.env.PANEL_SECRETO);
+  return Boolean(variable("PANEL_CLAVE") && variable("PANEL_SECRETO"));
 }
 
 /**
@@ -44,7 +55,7 @@ export function accesoLibre(): boolean {
 async function firmar(dato: string): Promise<string> {
   const llave = await crypto.subtle.importKey(
     "raw",
-    enc.encode(`${process.env.PANEL_SECRETO}:${process.env.PANEL_CLAVE}`),
+    enc.encode(`${variable("PANEL_SECRETO")}:${variable("PANEL_CLAVE")}`),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
@@ -63,9 +74,11 @@ function iguales(a: string, b: string): boolean {
 
 /** Se comparan las firmas y no los textos: asi tampoco se filtra el largo de la clave. */
 export async function claveCorrecta(clave: string): Promise<boolean> {
-  const real = process.env.PANEL_CLAVE;
+  const real = variable("PANEL_CLAVE");
   if (!panelConfigurado() || !real) return false;
-  return iguales(await firmar(`clave:${clave}`), await firmar(`clave:${real}`));
+  // Tambien se limpia lo que escribe el dueño: el teclado del celular suele
+  // dejar un espacio al final al autocompletar
+  return iguales(await firmar(`clave:${clave.trim()}`), await firmar(`clave:${real}`));
 }
 
 export async function crearSesion(): Promise<string> {
