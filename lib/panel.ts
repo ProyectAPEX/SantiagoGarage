@@ -8,6 +8,8 @@
  * de acceso, que la entrega recien despues de la clave). Tampoco se nombra en
  * robots.txt.
  */
+import { variable } from "@/lib/variables";
+
 export const RUTA_PANEL = "/gestion-c3da7f";
 export const RUTA_ENTRAR = `${RUTA_PANEL}/entrar`;
 
@@ -19,17 +21,6 @@ export const COOKIE_PANEL = "panel_sesion";
 export const DURACION_SESION = 60 * 60 * 24 * 7; // 7 dias, en segundos
 
 const enc = new TextEncoder();
-
-/**
- * Lee una variable limpiando espacios y comillas de los extremos.
- *
- * Pasa seguido: se pega la clave en Vercel con las comillas que llevaba en el
- * .env, o con un espacio al final, y despues nadie entiende por que el panel
- * dice "clave incorrecta" si la clave "es la correcta".
- */
-function variable(nombre: string): string {
-  return (process.env[nombre] ?? "").trim().replace(/^(['"])([\s\S]*)\1$/, "$2");
-}
 
 /** Sin clave ni secreto configurados, nadie entra (nunca se abre por defecto). */
 export function panelConfigurado(): boolean {

@@ -2,6 +2,7 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import nodemailer from "nodemailer";
+import { variable } from "@/lib/variables";
 import { EMAIL_CONTACTO, TELEFONO_VISIBLE, INSTAGRAM } from "@/lib/site";
 
 /**
@@ -16,16 +17,16 @@ import { EMAIL_CONTACTO, TELEFONO_VISIBLE, INSTAGRAM } from "@/lib/site";
 const MAX_ADJUNTO = 4 * 1024 * 1024; // 4 MB de PDF es muchisimo para un presupuesto
 
 export function correoConfigurado(): boolean {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD);
+  return Boolean(variable("SMTP_HOST") && variable("SMTP_USER") && variable("SMTP_PASSWORD"));
 }
 
 function transporte() {
-  const puerto = Number(process.env.SMTP_PORT ?? 465);
+  const puerto = Number(variable("SMTP_PORT") || 465);
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
+    host: variable("SMTP_HOST"),
     port: puerto,
     secure: puerto === 465, // 465 va cifrado de entrada; 587 empieza en claro y sube a TLS
-    auth: { user: process.env.SMTP_USER!, pass: process.env.SMTP_PASSWORD! },
+    auth: { user: variable("SMTP_USER"), pass: variable("SMTP_PASSWORD") },
   });
 }
 
@@ -113,10 +114,10 @@ export async function enviarPresupuestoPorCorreo(datos: CorreoPresupuesto): Prom
 
   try {
     const envio = await transporte().sendMail({
-      from: `Santiago Garage <${process.env.SMTP_USER}>`,
+      from: `Santiago Garage <${variable("SMTP_USER")}>`,
       // El buzon de cotizaciones es solo para enviar: si el cliente responde,
       // la respuesta cae en el correo que el taller si revisa.
-      replyTo: process.env.SMTP_RESPUESTAS || EMAIL_CONTACTO,
+      replyTo: variable("SMTP_RESPUESTAS") || EMAIL_CONTACTO,
       to: datos.para,
       subject: `Cotización N° ${datos.numero} · Santiago Garage`,
       text: texto, // por si el correo del cliente no muestra HTML

@@ -1,11 +1,12 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { variable } from "@/lib/variables";
 
 let cliente: SupabaseClient | null | undefined;
 
 /** ¿Esta conectada la base? Sin ella el panel va directo al presupuesto. */
 export function baseConfigurada(): boolean {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SECRET_KEY);
+  return Boolean(variable("SUPABASE_URL") && variable("SUPABASE_SECRET_KEY"));
 }
 
 /**
@@ -18,8 +19,8 @@ export function baseConfigurada(): boolean {
  */
 export function supabase(): SupabaseClient | null {
   if (cliente !== undefined) return cliente;
-  const url = process.env.SUPABASE_URL;
-  const clave = process.env.SUPABASE_SECRET_KEY;
+  const url = variable("SUPABASE_URL");
+  const clave = variable("SUPABASE_SECRET_KEY");
   cliente =
     url && clave
       ? createClient(url, clave, { auth: { persistSession: false, autoRefreshToken: false } })
