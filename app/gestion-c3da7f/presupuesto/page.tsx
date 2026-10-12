@@ -49,6 +49,8 @@ export default async function PaginaPresupuesto({
         validezDias: p.validez_dias || "15",
         observaciones: p.observaciones ?? "",
         items: (p.items ?? []).map((i) => ({ descripcion: i.descripcion, precio: i.precio })),
+        // No hay columna para esto: si se guardó con IVA 0, salió en valores netos
+        conIva: Number(p.iva) > 0,
       };
     }
   }

@@ -44,7 +44,7 @@ export async function enviarPorCorreo(datos: CorreoPresupuesto): Promise<string>
   if (!datos || typeof datos !== "object") return "Faltan los datos del presupuesto.";
   if (!esEmailValido(datos.para ?? "")) return "El correo del cliente no es válido.";
   if (typeof datos.pdfBase64 !== "string" || !datos.pdfBase64) return "El PDF llegó vacío.";
-  return enviarPresupuestoPorCorreo(datos);
+  return enviarPresupuestoPorCorreo({ ...datos, conIva: datos.conIva !== false });
 }
 
 export async function reabrirSolicitud(id: string): Promise<boolean> {

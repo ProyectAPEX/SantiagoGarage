@@ -87,7 +87,7 @@ function guardarNumero(numero: string) {
 }
 
 /** Un presupuesto del historial que se abre de nuevo (con número nuevo). */
-export type Copia = Omit<typeof vacio, "fecha"> & { items: ItemTrabajo[] };
+export type Copia = Omit<typeof vacio, "fecha"> & { items: ItemTrabajo[]; conIva: boolean };
 
 export default function FormularioPresupuesto({
   inicial,
@@ -103,13 +103,20 @@ export default function FormularioPresupuesto({
   const [f, setF] = useState(() => {
     if (copia) {
       // los trabajos van en su propio estado, no en este
-      const campos = Object.fromEntries(Object.entries(copia).filter(([k]) => k !== "items"));
+      const campos = Object.fromEntries(
+        Object.entries(copia).filter(([k]) => k !== "items" && k !== "conIva")
+      );
       return { ...vacio, ...campos };
     }
     return inicial
       ? { ...vacio, nombre: inicial.nombre, telefono: inicial.telefono, marca: inicial.marca, modelo: inicial.modelo, anio: inicial.anio }
       : vacio;
   });
+  /**
+   * Con o sin IVA. El cliente del taller pide las dos: la que lleva IVA sale
+   * con el total final, y la otra sale en valores netos y lo dice.
+   */
+  const [conIva, setConIva] = useState(copia ? copia.conIva : true);
   const [solicitud, setSolicitud] = useState<DatosIniciales | null>(inicial);
   const [items, setItems] = useState<Linea[]>(() =>
     copia?.items?.length ? copia.items.map((i) => ({ servicio: "", ...i })) : [{ ...lineaVacia }]
@@ -151,6 +158,7 @@ export default function FormularioPresupuesto({
         nombreCliente: limpiarTexto(f.nombre, 80),
         numero,
         total: formatCLP(totales.total),
+        conIva,
         pdfBase64: btoa(binario),
         nombreArchivo: file.name,
       });
@@ -199,7 +207,7 @@ export default function FormularioPresupuesto({
     setItems(copia);
   }
 
-  const totales = calcularTotales(items, Number(f.descuento) || 0);
+  const totales = calcularTotales(items, Number(f.descuento) || 0, conIva);
 
   function armarDatos() {
     return {
@@ -227,6 +235,7 @@ export default function FormularioPresupuesto({
       plazoDias: limpiarTexto(f.plazoDias, 3),
       validezDias: limpiarTexto(f.validezDias, 3),
       observaciones: limpiarTexto(f.observaciones, 400),
+      conIva,
     };
   }
 
@@ -312,6 +321,7 @@ export default function FormularioPresupuesto({
     setSolicitud(null);
     setF({ ...vacio, fecha: hoyISO() });
     setItems([{ ...lineaVacia }]);
+    setConIva(true); // la siguiente parte de nuevo con IVA
     setNumero(siguienteNumero());
     setError("");
     setListo("");
@@ -570,6 +580,37 @@ export default function FormularioPresupuesto({
           <p className="font-display font-bold text-[12px] tracking-[1.5px] uppercase mb-4" style={{ color: "#D0021B" }}>
             Condiciones
           </p>
+          <div className="mb-4">
+            <span className={label}>Valores de la cotización</span>
+            <div className="flex gap-2">
+              {[
+                { valor: true, titulo: "Con IVA", nota: "total final" },
+                { valor: false, titulo: "Sin IVA", nota: "valores netos" },
+              ].map((o) => {
+                const activo = conIva === o.valor;
+                return (
+                  <button
+                    key={o.titulo}
+                    type="button"
+                    aria-pressed={activo}
+                    onClick={() => setConIva(o.valor)}
+                    className="flex-1 rounded-xl px-3 py-2.5 text-left border"
+                    style={{
+                      borderColor: activo ? "#D0021B" : "#D5D2CC",
+                      background: activo ? "#FDF0F1" : "#fff",
+                    }}
+                  >
+                    <span className="block font-display font-semibold text-[14px]" style={{ color: "#16181D" }}>
+                      {o.titulo}
+                    </span>
+                    <span className="block text-[12px]" style={{ color: "#6B7280" }}>
+                      {o.nota}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
               <label className={label} htmlFor="descuento">Descuento</label>
@@ -640,7 +681,7 @@ export default function FormularioPresupuesto({
         <div className="max-w-[640px] mx-auto">
           <div className="flex items-baseline justify-between mb-3">
             <span className="font-display font-semibold text-[13px] uppercase tracking-[1px]" style={{ color: "#6B7280" }}>
-              Total c/IVA
+              {conIva ? "Total c/IVA" : "Total neto"}
             </span>
             <span className="font-display font-bold text-[26px] leading-none" style={{ color: "#16181D" }}>
               {formatCLP(totales.total)}

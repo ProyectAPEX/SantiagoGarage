@@ -12,6 +12,8 @@ export type Presupuesto = {
   plazoDias: string;
   validezDias: string;
   observaciones: string;
+  /** false = la cotizacion sale en valores netos, sin IVA. Por defecto va con IVA. */
+  conIva?: boolean;
 };
 
 const ROJO: [number, number, number] = [208, 2, 27];
@@ -35,12 +37,16 @@ export function formatCLP(n: number): string {
 /** IVA en Chile. Se aplica sobre el neto, despues del descuento. */
 export const TASA_IVA = 0.19;
 
-export function calcularTotales(items: ItemTrabajo[], descuento: number) {
+/**
+ * Totales del presupuesto. Con `conIva = false` la cotizacion sale en valores
+ * netos: no se agrega IVA y el total es el neto.
+ */
+export function calcularTotales(items: ItemTrabajo[], descuento: number, conIva = true) {
   const subtotal = items.reduce((acc, i) => acc + (Number(i.precio) || 0), 0);
   const desc = Number(descuento) || 0;
   const neto = Math.max(0, subtotal - desc);
-  const iva = Math.round(neto * TASA_IVA);
-  return { subtotal, descuento: desc, neto, iva, total: neto + iva };
+  const iva = conIva ? Math.round(neto * TASA_IVA) : 0;
+  return { subtotal, descuento: desc, neto, iva, total: neto + iva, conIva };
 }
 
 async function cargarLogo(): Promise<string | null> {
@@ -198,7 +204,8 @@ export async function generarPresupuestoPDF(p: Presupuesto): Promise<Blob> {
   y = yFinTabla + 2;
 
   // ——— TOTALES ———
-  const { subtotal, descuento, iva, total } = calcularTotales(p.items, p.descuento);
+  const conIva = p.conIva !== false;
+  const { subtotal, descuento, iva, total } = calcularTotales(p.items, p.descuento, conIva);
   const xEtiq = xPrecio - 34;
 
   doc.setFont("helvetica", "normal").setFontSize(9).setTextColor(...GRIS);
@@ -215,17 +222,20 @@ export async function generarPresupuestoPDF(p: Presupuesto): Promise<Blob> {
     y += 5.5;
   }
 
-  doc.setTextColor(...GRIS);
-  doc.text(`IVA (${Math.round(TASA_IVA * 100)}%)`, xEtiq, y + 5);
-  doc.setTextColor(...TINTA);
-  doc.text(formatCLP(iva), W - M - 3, y + 5, { align: "right" });
-  y += 5.5;
+  // Sin IVA la fila no se dibuja: la cotizacion queda en valores netos
+  if (conIva) {
+    doc.setTextColor(...GRIS);
+    doc.text(`IVA (${Math.round(TASA_IVA * 100)}%)`, xEtiq, y + 5);
+    doc.setTextColor(...TINTA);
+    doc.text(formatCLP(iva), W - M - 3, y + 5, { align: "right" });
+    y += 5.5;
+  }
 
   y += 1.5;
   doc.setFillColor(...TINTA);
   doc.rect(xEtiq - 4, y, W - M - (xEtiq - 4), 10, "F");
   doc.setFont("helvetica", "bold").setFontSize(12).setTextColor(255, 255, 255);
-  doc.text("TOTAL", xEtiq, y + 6.8);
+  doc.text(conIva ? "TOTAL" : "TOTAL NETO", xEtiq, y + 6.8);
   doc.text(formatCLP(total), W - M - 3, y + 6.8, { align: "right" });
   y += 14;
 
@@ -246,6 +256,7 @@ export async function generarPresupuestoPDF(p: Presupuesto): Promise<Blob> {
   const cond: string[] = [];
   if (p.plazoDias) cond.push(`Plazo estimado: ${p.plazoDias} días hábiles`);
   if (p.validezDias) cond.push(`Validez del presupuesto: ${p.validezDias} días`);
+  if (!conIva) cond.push("Valores netos, no incluyen IVA");
   if (cond.length) doc.text(cond.join("   ·   "), M, y);
 
   // ——— PIE ———

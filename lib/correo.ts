@@ -46,6 +46,7 @@ async function logoAdjunto() {
 
 function cuerpoHtml(datos: CorreoPresupuesto, conLogo: boolean): string {
   const nombre = datos.nombreCliente.split(" ")[0] || "";
+  const neto = datos.conIva === false;
   return `<!doctype html>
 <html lang="es"><body style="margin:0;padding:24px;background:#F1EFEA;font-family:Arial,Helvetica,sans-serif;color:#16181D">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;border:1px solid #E8E6E1">
@@ -53,7 +54,7 @@ function cuerpoHtml(datos: CorreoPresupuesto, conLogo: boolean): string {
       ${conLogo ? `<img src="cid:logo-taller" alt="Santiago Garage" width="180" style="display:block;margin-bottom:18px">` : `<p style="font-size:20px;font-weight:bold;margin:0 0 18px">SANTIAGO GARAGE</p>`}
       <p style="font-size:16px;line-height:1.6;margin:0 0 14px">Hola ${nombre},</p>
       <p style="font-size:16px;line-height:1.6;margin:0 0 16px">
-        Le adjuntamos la cotización <strong>N° ${datos.numero}</strong> por <strong>${datos.total}</strong>.
+        Le adjuntamos la cotización <strong>N° ${datos.numero}</strong> por <strong>${datos.total}</strong>${neto ? " (valor neto, no incluye IVA)" : ""}.
       </p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px">
         <tr><td style="background:#F1EFEA;border-left:4px solid #D0021B;border-radius:8px;padding:14px 16px">
@@ -61,7 +62,7 @@ function cuerpoHtml(datos: CorreoPresupuesto, conLogo: boolean): string {
             Pinche el PDF de este correo para ver el detalle
           </p>
           <p style="font-size:14px;line-height:1.5;margin:6px 0 0;color:#4B5058">
-            Ahí van los trabajos uno por uno, con sus valores, el IVA y el total.
+            Ahí van los trabajos uno por uno, con sus valores y el total${neto ? " neto, sin IVA" : ", con el IVA incluido"}.
           </p>
         </td></tr>
       </table>
@@ -83,6 +84,8 @@ export type CorreoPresupuesto = {
   nombreCliente: string;
   numero: string;
   total: string;
+  /** false = el total va neto, sin IVA: el correo tiene que decirlo. */
+  conIva?: boolean;
   pdfBase64: string;
   nombreArchivo: string;
 };
@@ -96,13 +99,14 @@ export async function enviarPresupuestoPorCorreo(datos: CorreoPresupuesto): Prom
   if (pdf.length > MAX_ADJUNTO) return "El PDF pesa demasiado para enviarlo por correo.";
 
   const nombre = datos.nombreCliente.split(" ")[0] || "";
+  const neto = datos.conIva === false;
   const texto = [
     `Hola ${nombre},`,
     "",
-    `Le adjuntamos la cotización N° ${datos.numero} de Santiago Garage por ${datos.total}.`,
+    `Le adjuntamos la cotización N° ${datos.numero} de Santiago Garage por ${datos.total}${neto ? " (valor neto, no incluye IVA)" : ""}.`,
     "",
     "PINCHE EL PDF DE ESTE CORREO PARA VER EL DETALLE.",
-    "Ahí van los trabajos uno por uno, con sus valores, el IVA y el total.",
+    `Ahí van los trabajos uno por uno, con sus valores y el total${neto ? " neto, sin IVA" : ", con el IVA incluido"}.`,
     "",
     "Cualquier duda quedamos atentos.",
     "",
