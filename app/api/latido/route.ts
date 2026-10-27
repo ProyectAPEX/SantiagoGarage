@@ -4,10 +4,13 @@ import { supabase, baseConfigurada } from "@/lib/supabase";
 /**
  * Latido diario para que Supabase no pause el proyecto.
  *
- * El plan gratis duerme la base tras 7 dias sin consultas, y entonces el
- * panel deja de ver el historial hasta que alguien la despierta a mano. Esta
- * ruta hace la consulta mas barata posible (contar filas, sin traerlas) y la
- * llama Vercel una vez al dia, segun vercel.json.
+ * El plan gratis duerme la base tras una semana sin "actividad suficiente", y
+ * entonces el panel y la agenda dejan de funcionar hasta que alguien la
+ * despierta a mano. Vercel llama esta ruta una vez al dia (vercel.json).
+ *
+ * Escribe, no solo lee: en octubre de 2026 la base se pauso igual con un
+ * latido que solo contaba filas. Reescribe la unica fila de la tabla latido
+ * (supabase/004_latido.sql); si esa tabla todavia no existe, por lo menos lee.
  *
  * Ojo: si la base YA esta pausada, esto no la despierta. Eso se hace una vez
  * desde el panel de Supabase.
@@ -22,13 +25,16 @@ export async function GET(req: Request) {
   }
 
   if (!baseConfigurada()) return NextResponse.json({ ok: false, motivo: "sin base configurada" }, { status: 503 });
+  const db = supabase()!;
 
-  const db = supabase();
-  const { count, error } = await db!.from("presupuestos").select("id", { count: "exact", head: true });
+  const escrito = await db.from("latido").upsert({ id: 1, ultimo: new Date().toISOString() });
+  if (!escrito.error) return NextResponse.json({ ok: true, escribio: true });
 
+  const { count, error } = await db.from("presupuestos").select("id", { count: "exact", head: true });
   if (error) {
     console.error("Latido: la base no respondió:", error.message);
     return NextResponse.json({ ok: false, motivo: error.message }, { status: 503 });
   }
-  return NextResponse.json({ ok: true, presupuestos: count ?? 0 });
+  console.error("Latido: solo se pudo leer, falta la tabla latido:", escrito.error.message);
+  return NextResponse.json({ ok: true, escribio: false, presupuestos: count ?? 0 });
 }
