@@ -12,10 +12,29 @@ import { EMAIL_CONTACTO, TELEFONO_VISIBLE, WA_URL, INSTAGRAM, DIRECCION, GOOGLE_
  * presupuestos.
  */
 
-/** A quien le llega el aviso de cada hora nueva. Por defecto, el correo del taller. */
-function correoDelTaller(): string {
-  return variable("AGENDA_AVISO") || EMAIL_CONTACTO;
+/**
+ * A quien le llega el aviso de cada hora nueva. Por defecto, el correo del
+ * taller. AGENDA_AVISO admite varios, separados por coma.
+ */
+function correosDelTaller(): string[] {
+  return (variable("AGENDA_AVISO") || EMAIL_CONTACTO)
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
 }
+
+/**
+ * Los que reciben el aviso y NO son el buzon que lo manda. A ellos la hora
+ * les llega como invitacion, y Google Calendar y Outlook con cuenta
+ * Microsoft la ponen sola en el calendario. Si el aviso solo le llega al
+ * buzon que lo manda, va como "agregar al calendario" (un toque).
+ */
+function invitadosDelTaller(): string[] {
+  const remitente = variable("SMTP_USER").toLowerCase();
+  return correosDelTaller().filter((c) => c.toLowerCase() !== remitente);
+}
+
+const metodoDelAviso = (): "REQUEST" | "PUBLISH" => (invitadosDelTaller().length ? "REQUEST" : "PUBLISH");
 
 /** Lo que escribe el publico va dentro de HTML: nunca sin escapar. */
 function escapar(texto: string): string {
@@ -104,7 +123,9 @@ function evento(c: Cita, metodo: EventoCalendario["metodo"], paraTaller: boolean
       ];
 
   return crearIcs({
-    uid: `${c.id}@santiagogarage.cl`,
+    // Un evento para el cliente y otro para el taller: dicen cosas distintas, y
+    // si compartieran id un calendario que reciba los dos los mezclaria
+    uid: paraTaller ? `${c.id}-taller@santiagogarage.cl` : `${c.id}@santiagogarage.cl`,
     metodo,
     secuencia: metodo === "CANCEL" ? 1 : 0,
     inicio: new Date(c.inicio),
@@ -115,7 +136,9 @@ function evento(c: Cita, metodo: EventoCalendario["metodo"], paraTaller: boolean
     descripcion: detalle.join("\n"),
     lugar: DIRECCION,
     organizador: { nombre: "Santiago Garage", email: remitente },
-    asistente: paraTaller ? undefined : { nombre: c.nombre, email: c.email },
+    asistentes: paraTaller
+      ? invitadosDelTaller().map((email) => ({ nombre: "Santiago Garage", email }))
+      : [{ nombre: c.nombre, email: c.email }],
     aviso: paraTaller ? "-PT30M" : "-P1D",
   });
 }
@@ -216,6 +239,18 @@ export async function avisarReserva(c: Cita, fotos: Uint8Array[] = []): Promise<
   ].join("\n");
 
   // ——— Al taller ———
+  const calendarioTaller =
+    metodoDelAviso() === "REQUEST"
+      ? {
+          titulo: "Ya está en tu calendario",
+          bajada:
+            "La hora llega como invitación: Google Calendar y Outlook la agregan solos. Si no aparece, abre la invitación (hora-santiago-garage.ics) y acéptala. Si respondes este correo, le llega al cliente.",
+        }
+      : {
+          titulo: "Agrégala a tu calendario de Outlook",
+          bajada:
+            "Abre la invitación que viene en este correo (hora-santiago-garage.ics) y queda en tu calendario con todos los datos. Si respondes este correo, le llega al cliente.",
+        };
   const htmlTaller = marco(
     `<p style="font-size:13px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:#D0021B;margin:0 0 8px">Nueva hora desde la web</p>
       <p style="font-size:20px;line-height:1.35;font-weight:bold;margin:0 0 16px">${escapar(mayuscula(dia))}, ${escapar(horario)}</p>
@@ -231,10 +266,7 @@ export async function avisarReserva(c: Cita, fotos: Uint8Array[] = []): Promise<
         ["Observaciones", c.comentario ? escapar(c.comentario) : null],
         ["Fotos", fotos.length ? `${fotos.length} adjunta${fotos.length === 1 ? "" : "s"} en este correo` : null],
       ])}
-      ${destacado(
-        "Agrégala a tu calendario de Outlook",
-        "Abre la invitación que viene en este correo (hora-santiago-garage.ics) y queda en tu calendario con todos los datos. Si respondes, le llega al cliente."
-      )}`,
+      ${destacado(calendarioTaller.titulo, calendarioTaller.bajada)}`,
     conLogo
   );
   const textoTaller = [
@@ -245,7 +277,7 @@ export async function avisarReserva(c: Cita, fotos: Uint8Array[] = []): Promise<
     ...datosDelCliente(c),
     ...(fotos.length ? [`Fotos: ${fotos.length} adjunta${fotos.length === 1 ? "" : "s"} en este correo`] : []),
     "",
-    "Abre la invitación adjunta (hora-santiago-garage.ics) para agregarla a tu calendario.",
+    calendarioTaller.bajada,
   ].join("\n");
 
   const [cliente, taller] = await Promise.all([
@@ -261,13 +293,13 @@ export async function avisarReserva(c: Cita, fotos: Uint8Array[] = []): Promise<
       quien: "al cliente",
     }),
     enviar({
-      para: correoDelTaller(),
+      para: correosDelTaller().join(", "),
       responderA: c.email, // responder le escribe directo al cliente
       asunto: `Nueva hora: ${r.nombre} · ${c.nombre} · ${dia} ${c.hora}`,
       html: htmlTaller,
       texto: textoTaller,
-      ics: evento(c, "PUBLISH", true),
-      metodo: "PUBLISH",
+      ics: evento(c, metodoDelAviso(), true),
+      metodo: metodoDelAviso(),
       logo,
       fotos,
       quien: "al taller",
@@ -329,7 +361,7 @@ export async function avisarCancelacion(c: Cita): Promise<{ cliente: boolean; ta
       quien: "de cancelación al cliente",
     }),
     enviar({
-      para: correoDelTaller(),
+      para: correosDelTaller().join(", "),
       responderA: c.email,
       asunto: `Cancelada: ${r.nombre} · ${c.nombre} · ${dia} ${c.hora}`,
       html: htmlTaller,

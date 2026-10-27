@@ -5,9 +5,11 @@ import "server-only";
  * Outlook, Google Calendar y el calendario del iPhone: el correo lo trae y con
  * un toque la hora queda guardada.
  *
- * - REQUEST: invitacion con botones (la que recibe el cliente)
- * - PUBLISH: "agrega este evento" (la que recibe el taller, que es a la vez
- *   quien la manda: una invitacion a uno mismo Outlook no la sabe mostrar)
+ * - REQUEST: invitacion. Google Calendar y Outlook con cuenta Microsoft la
+ *   ponen solas en el calendario, sin que nadie toque nada
+ * - PUBLISH: "agrega este evento", con un toque. Para cuando el aviso le
+ *   llega al mismo buzon que lo manda: una invitacion a uno mismo Outlook no
+ *   la sabe mostrar
  * - CANCEL: borra el evento del calendario. Tiene que llevar el MISMO uid y
  *   una secuencia mayor que la original
  */
@@ -24,7 +26,7 @@ export type EventoCalendario = {
   descripcion: string;
   lugar: string;
   organizador: Persona;
-  asistente?: Persona;
+  asistentes?: Persona[];
   /** Recordatorio, en duracion ISO: "-P1D" = un dia antes, "-PT1H" = una hora antes */
   aviso?: string;
 };
@@ -91,10 +93,8 @@ export function crearIcs(e: EventoCalendario): string {
     "TRANSP:OPAQUE",
     `ORGANIZER;CN="${nombre(e.organizador.nombre)}":mailto:${e.organizador.email}`,
   ];
-  if (e.asistente) {
-    lineas.push(
-      `ATTENDEE;CN="${nombre(e.asistente.nombre)}";ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=FALSE:mailto:${e.asistente.email}`
-    );
+  for (const a of e.asistentes ?? []) {
+    lineas.push(`ATTENDEE;CN="${nombre(a.nombre)}";ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=FALSE:mailto:${a.email}`);
   }
   if (e.aviso && !cancelada) {
     lineas.push("BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${texto(e.titulo)}`, `TRIGGER:${e.aviso}`, "END:VALARM");
