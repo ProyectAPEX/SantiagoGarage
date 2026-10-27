@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { esTipo, regla, fechaLarga, horaFin } from "@/lib/agenda";
-import { disponibilidad, validarCita, reservarCita } from "@/lib/citas";
+import { esTipo, regla, fechaLarga, horaFin, MAX_FOTOS } from "@/lib/agenda";
+import { disponibilidad, validarCita, reservarCita, esFotoValida, guardarFotos } from "@/lib/citas";
 import { avisarReserva } from "@/lib/correo-agenda";
 
 export const dynamic = "force-dynamic";
 
-/** Un formulario de agenda no pesa mas que esto. */
-const MAX_BYTES = 6_000;
+/**
+ * Vercel no acepta envios de mas de 4,5 MB. Las fotos llegan achicadas desde
+ * el navegador (~300 KB cada una), asi que esto solo lo pasa algo armado a mano.
+ */
+const MAX_BYTES = 4_400_000;
 
 const SIN_AGENDA = "La agenda no está disponible en este momento. Escríbenos por WhatsApp y te damos hora.";
 
@@ -24,28 +27,35 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * Reserva una hora. El proxy ya limita la frecuencia por IP y bloquea envios
- * desde otros sitios; aca se revisa todo de nuevo antes de guardar.
+ * Reserva una hora. Llega como formulario (multipart) porque puede traer
+ * fotos. El proxy ya limita la frecuencia por IP y bloquea envios desde otros
+ * sitios; aca se revisa todo de nuevo antes de guardar.
  */
 export async function POST(req: NextRequest) {
-  const cuerpo = await req.text();
-  if (cuerpo.length > MAX_BYTES) {
-    return NextResponse.json({ ok: false, error: "Solicitud demasiado grande." }, { status: 413 });
+  if (Number(req.headers.get("content-length") || 0) > MAX_BYTES) {
+    return NextResponse.json({ ok: false, error: "Las fotos pesan demasiado. Prueba con menos." }, { status: 413 });
   }
 
-  let json: unknown;
+  const campos: Record<string, string> = {};
+  const fotos: Uint8Array[] = [];
   try {
-    json = JSON.parse(cuerpo);
+    const form = await req.formData();
+    for (const [clave, valor] of form.entries()) {
+      if (typeof valor === "string") campos[clave] = valor;
+      else if (clave === "fotos") fotos.push(new Uint8Array(await valor.arrayBuffer()));
+    }
   } catch {
     return NextResponse.json({ ok: false, error: "Formato inválido." }, { status: 400 });
   }
 
   // Campo trampa: lo llenan los bots. Se responde como si nada, sin guardar.
-  if (json && typeof json === "object" && (json as Record<string, unknown>).empresa) {
-    return NextResponse.json({ ok: true, correo: true }, { status: 201 });
+  if (campos.empresa) return NextResponse.json({ ok: true, correo: true }, { status: 201 });
+
+  if (fotos.length > MAX_FOTOS || fotos.some((f) => !esFotoValida(f))) {
+    return NextResponse.json({ ok: false, error: `Las fotos no son válidas (máximo ${MAX_FOTOS}).` }, { status: 400 });
   }
 
-  const v = validarCita(json);
+  const v = validarCita(campos);
   if (!v.ok) return NextResponse.json({ ok: false, error: v.error }, { status: 400 });
 
   const reserva = await reservarCita(v.datos);
@@ -60,10 +70,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error, motivo: reserva.motivo }, { status });
   }
 
-  // Se espera el correo dentro de la peticion: en segundo plano (after) puede
-  // no ejecutarse nunca en Vercel y no deja rastro (ver Trampas conocidas)
+  // La hora ya esta tomada. Fotos y correos van en paralelo, y se esperan
+  // dentro de la peticion: en segundo plano (after) pueden no ejecutarse nunca
+  // en Vercel y no dejan rastro (ver Trampas conocidas)
   const c = reserva.cita;
-  const aviso = await avisarReserva(c);
+  const [, aviso] = await Promise.all([guardarFotos(c.id, fotos), avisarReserva(c, fotos)]);
 
   return NextResponse.json(
     {

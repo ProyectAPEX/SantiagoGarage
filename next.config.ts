@@ -2,6 +2,19 @@ import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV === "development";
 
+/**
+ * Origen del proyecto de Supabase (solo ese, no todo supabase.co): de ahi
+ * salen las fotos de la agenda que el panel muestra con enlaces firmados.
+ */
+function origenSupabase(): string {
+  const url = (process.env.SUPABASE_URL ?? "").trim().replace(/^(['"])([\s\S]*)\1$/, "$2");
+  try {
+    return url ? ` ${new URL(url).origin}` : "";
+  } catch {
+    return "";
+  }
+}
+
 // Content Security Policy — solo permite los orígenes que el sitio realmente usa
 const csp = [
   "default-src 'self'",
@@ -10,8 +23,8 @@ const csp = [
   // Estilos inline (Tailwind/styles) + Google Fonts CSS
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
-  // Imágenes propias, Unsplash y data URIs
-  "img-src 'self' data: blob: https://images.unsplash.com https://plus.unsplash.com",
+  // Imágenes propias, Unsplash, data URIs, vistas previas (blob:) y las fotos de la agenda
+  `img-src 'self' data: blob: https://images.unsplash.com https://plus.unsplash.com${origenSupabase()}`,
   // Mapa embebido de Google
   "frame-src https://www.google.com",
   "connect-src 'self'" + (isDev ? " ws: wss:" : ""),

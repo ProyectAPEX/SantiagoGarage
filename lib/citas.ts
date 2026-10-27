@@ -16,6 +16,9 @@ import {
   esTipo,
   esFecha,
   FERIADOS,
+  MAX_FOTOS,
+  MAX_BYTES_FOTO,
+  DIAS_GUARDAR_FOTOS,
 } from "@/lib/agenda";
 
 /**
@@ -42,7 +45,10 @@ export type Cita = {
   patente: string | null;
   aseguradora: string | null;
   siniestro: string | null;
+  /** Las observaciones del cliente (la columna se llama asi desde el inicio) */
   comentario: string | null;
+  /** Rutas de las fotos del daño en el espacio privado "citas" */
+  fotos: string[];
 };
 
 export type NuevaCita = Pick<
@@ -51,7 +57,9 @@ export type NuevaCita = Pick<
 >;
 
 const COLUMNAS =
-  "id, creada, tipo, fecha, hora, inicio, fin, estado, cancelada, nombre, telefono, email, marca, modelo, patente, aseguradora, siniestro, comentario";
+  "id, creada, tipo, fecha, hora, inicio, fin, estado, cancelada, nombre, telefono, email, marca, modelo, patente, aseguradora, siniestro, comentario, fotos";
+
+const ESPACIO_FOTOS = "citas";
 
 const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -171,6 +179,69 @@ export async function reservarCita(d: NuevaCita): Promise<Reserva> {
     return { ok: false, motivo: "error" };
   }
   return { ok: true, cita: data as unknown as Cita };
+}
+
+// ——— Fotos del daño ———
+
+/** Lo que llega tiene que ser un JPEG de verdad: se mira la firma del archivo, no el nombre. */
+export function esFotoValida(bytes: Uint8Array): boolean {
+  return bytes.length > 3 && bytes.length <= MAX_BYTES_FOTO && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+}
+
+/**
+ * Sube las fotos de una cita al espacio privado y las anota en la cita.
+ * Devuelve las rutas que quedaron guardadas (si una falla, sigue con las otras:
+ * la hora ya esta reservada y las fotos son un extra).
+ */
+export async function guardarFotos(id: string, fotos: Uint8Array[]): Promise<string[]> {
+  const db = supabase();
+  if (!db || !ES_UUID.test(id)) return [];
+
+  const rutas: string[] = [];
+  for (const [i, foto] of fotos.slice(0, MAX_FOTOS).entries()) {
+    const ruta = `${id}/${i + 1}.jpg`;
+    const { error } = await db.storage.from(ESPACIO_FOTOS).upload(ruta, foto, { contentType: "image/jpeg", upsert: false });
+    if (error) console.error("[agenda] no se pudo subir una foto:", error.message);
+    else rutas.push(ruta);
+  }
+  if (rutas.length) {
+    const { error } = await db.from("citas").update({ fotos: rutas }).eq("id", id);
+    if (error) console.error("[agenda] no se pudieron anotar las fotos:", error.message);
+  }
+  return rutas;
+}
+
+/** Enlaces para ver las fotos desde el panel. Vencen en una hora. */
+export async function enlacesDeFotos(rutas: string[]): Promise<Map<string, string>> {
+  const db = supabase();
+  const enlaces = new Map<string, string>();
+  if (!db || !rutas.length) return enlaces;
+  const { data, error } = await db.storage.from(ESPACIO_FOTOS).createSignedUrls(rutas, 3600);
+  if (error) console.error("[agenda] no se pudieron firmar las fotos:", error.message);
+  for (const f of data ?? []) if (f.path && f.signedUrl) enlaces.set(f.path, f.signedUrl);
+  return enlaces;
+}
+
+/**
+ * Borra las fotos de las citas que ya pasaron hace mas de DIAS_GUARDAR_FOTOS.
+ * La cita queda; solo se vacian sus fotos. Asi el espacio gratis (1 GB) no se
+ * llena, y no se guardan datos de clientes mas tiempo del necesario.
+ */
+export async function borrarFotosViejas(): Promise<number> {
+  const db = supabase();
+  if (!db) return 0;
+  const limite = sumarDias(hoyEnChile(), -DIAS_GUARDAR_FOTOS);
+  const { data, error } = await db.from("citas").select("id, fotos").lt("fecha", limite).neq("fotos", "{}").limit(200);
+  if (error || !data?.length) return 0;
+
+  const viejas = data as { id: string; fotos: string[] }[];
+  const borradas = await db.storage.from(ESPACIO_FOTOS).remove(viejas.flatMap((c) => c.fotos));
+  if (borradas.error) {
+    console.error("[agenda] no se pudieron borrar fotos viejas:", borradas.error.message);
+    return 0;
+  }
+  await db.from("citas").update({ fotos: [] }).in("id", viejas.map((c) => c.id));
+  return viejas.length;
 }
 
 // ——— Panel ———

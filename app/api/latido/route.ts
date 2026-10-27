@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase, baseConfigurada } from "@/lib/supabase";
+import { borrarFotosViejas } from "@/lib/citas";
 
 /**
  * Latido diario para que Supabase no pause el proyecto.
@@ -28,7 +29,12 @@ export async function GET(req: Request) {
   const db = supabase()!;
 
   const escrito = await db.from("latido").upsert({ id: 1, ultimo: new Date().toISOString() });
-  if (!escrito.error) return NextResponse.json({ ok: true, escribio: true });
+  if (!escrito.error) {
+    // De paso, una vez al dia: las fotos de citas viejas no se guardan para siempre.
+    // Si esto falla, el latido igual cuenta.
+    const fotosBorradas = await borrarFotosViejas().catch(() => 0);
+    return NextResponse.json({ ok: true, escribio: true, fotosBorradas });
+  }
 
   const { count, error } = await db.from("presupuestos").select("id", { count: "exact", head: true });
   if (error) {

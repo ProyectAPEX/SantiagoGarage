@@ -43,7 +43,7 @@ function datosDelCliente(c: Cita): string[] {
     ["Patente", c.patente],
     ["Aseguradora", c.aseguradora],
     ["N° de siniestro", c.siniestro],
-    ["Comentario", c.comentario],
+    ["Observaciones", c.comentario],
   ];
   return pares.filter(([, v]) => v).map(([etiqueta, v]) => `${etiqueta}: ${v}`);
 }
@@ -131,9 +131,11 @@ async function enviar(opciones: {
   ics: string;
   metodo: EventoCalendario["metodo"];
   logo: Logo;
+  /** Fotos del daño, solo en el aviso al taller */
+  fotos?: Uint8Array[];
   quien: string;
 }): Promise<boolean> {
-  const { logo } = opciones;
+  const { logo, fotos = [] } = opciones;
   try {
     const envio = await transporte().sendMail({
       from: `Santiago Garage <${variable("SMTP_USER")}>`,
@@ -145,7 +147,10 @@ async function enviar(opciones: {
       // Nodemailer la manda dos veces: como invitacion (la que Outlook muestra
       // con botones) y como archivo adjunto, para el correo que no la reconoce
       icalEvent: { method: opciones.metodo, filename: "hora-santiago-garage.ics", content: opciones.ics },
-      attachments: logo ? [{ ...logo, contentDisposition: "inline" as const }] : [],
+      attachments: [
+        ...(logo ? [{ ...logo, contentDisposition: "inline" as const }] : []),
+        ...fotos.map((foto, i) => ({ filename: `foto-${i + 1}.jpg`, content: Buffer.from(foto), contentType: "image/jpeg" })),
+      ],
     });
     console.log(`[agenda] correo ${opciones.quien} aceptado: ${envio.messageId} · ${envio.response}`);
     return true;
@@ -155,8 +160,11 @@ async function enviar(opciones: {
   }
 }
 
-/** Confirmacion al cliente y aviso al taller. Devuelve si salio cada uno. */
-export async function avisarReserva(c: Cita): Promise<{ cliente: boolean; taller: boolean }> {
+/**
+ * Confirmacion al cliente y aviso al taller. Las fotos del daño van adjuntas
+ * en el aviso al taller. Devuelve si salio cada uno.
+ */
+export async function avisarReserva(c: Cita, fotos: Uint8Array[] = []): Promise<{ cliente: boolean; taller: boolean }> {
   if (!correoConfigurado()) {
     console.error("[agenda] correo sin configurar: la cita", c.id, "quedó guardada sin aviso");
     return { cliente: false, taller: false };
@@ -220,7 +228,8 @@ export async function avisarReserva(c: Cita): Promise<{ cliente: boolean; taller
         ["Patente", c.patente ? escapar(c.patente) : null],
         ["Aseguradora", c.aseguradora ? escapar(c.aseguradora) : null],
         ["N° siniestro", c.siniestro ? escapar(c.siniestro) : null],
-        ["Comentario", c.comentario ? escapar(c.comentario) : null],
+        ["Observaciones", c.comentario ? escapar(c.comentario) : null],
+        ["Fotos", fotos.length ? `${fotos.length} adjunta${fotos.length === 1 ? "" : "s"} en este correo` : null],
       ])}
       ${destacado(
         "Agrégala a tu calendario de Outlook",
@@ -234,6 +243,7 @@ export async function avisarReserva(c: Cita): Promise<{ cliente: boolean; taller
     `${mayuscula(dia)}, ${horario}`,
     `Atención: ${r.nombre}`,
     ...datosDelCliente(c),
+    ...(fotos.length ? [`Fotos: ${fotos.length} adjunta${fotos.length === 1 ? "" : "s"} en este correo`] : []),
     "",
     "Abre la invitación adjunta (hora-santiago-garage.ics) para agregarla a tu calendario.",
   ].join("\n");
@@ -259,6 +269,7 @@ export async function avisarReserva(c: Cita): Promise<{ cliente: boolean; taller
       ics: evento(c, "PUBLISH", true),
       metodo: "PUBLISH",
       logo,
+      fotos,
       quien: "al taller",
     }),
   ]);

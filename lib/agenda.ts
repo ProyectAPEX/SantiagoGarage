@@ -236,3 +236,15 @@ export function agendaDelTipo(
 /** Bajada de la agenda: la usan el inicio y /agendar. */
 export const TEXTO_AGENDA =
   "Elige qué necesita tu auto y la hora que más te acomode, de lunes a viernes. Te llega la confirmación al correo.";
+
+// ——— Fotos del daño ———
+// Se achican en el navegador antes de subir: una foto de celular pesa 3-5 MB
+// y Vercel no acepta envios de mas de 4,5 MB. Achicadas quedan en ~300 KB.
+
+export const MAX_FOTOS = 5;
+/** Lado mas largo de la foto achicada, en pixeles: sobra para ver un choque. */
+export const LADO_FOTO = 1600;
+/** Tope por foto ya achicada. El espacio de Supabase tambien lo exige (2 MB). */
+export const MAX_BYTES_FOTO = 1_500_000;
+/** Despues de esto se borran las fotos de una cita (la cita queda). */
+export const DIAS_GUARDAR_FOTOS = 90;

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { exigirAcceso } from "@/lib/acceso-panel";
-import { listarAgenda, listarBloqueos, type Cita } from "@/lib/citas";
+import { listarAgenda, listarBloqueos, enlacesDeFotos, type Cita } from "@/lib/citas";
 import { baseConfigurada } from "@/lib/supabase";
 import { regla, fechaLarga, horaFin, hoyEnChile, sumarDias, type TipoCita } from "@/lib/agenda";
 import { enlaceWhatsApp } from "@/lib/site";
@@ -36,6 +36,8 @@ export default async function Agenda() {
   for (const c of citas ?? []) porDia.set(c.fecha, [...(porDia.get(c.fecha) ?? []), c]);
   const cerrados = new Set((bloqueos ?? []).map((b) => b.fecha));
   const confirmadas = (citas ?? []).filter((c) => c.estado === "confirmada").length;
+  // Las fotos son privadas: se ven con enlaces firmados que vencen en una hora
+  const enlaces = await enlacesDeFotos((citas ?? []).flatMap((c) => c.fotos ?? []));
 
   const tarjeta = "rounded-2xl p-4 bg-white";
   const borde = { border: "1px solid #E8E6E1" } as const;
@@ -121,6 +123,18 @@ export default async function Agenda() {
                       <p className="text-[14px] mt-1.5" style={{ color: "#6B7280" }}>
                         “{c.comentario}”
                       </p>
+                    )}
+                    {c.fotos?.some((f) => enlaces.has(f)) && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {c.fotos.map((f, i) =>
+                          enlaces.has(f) ? (
+                            <a key={f} href={enlaces.get(f)} target="_blank" rel="noopener noreferrer" className="block w-16 h-16 rounded-lg overflow-hidden" style={borde}>
+                              {/* eslint-disable-next-line @next/next/no-img-element -- enlace firmado que vence: no conviene que next/image lo guarde */}
+                              <img src={enlaces.get(f)} alt={`Foto ${i + 1} del daño`} className="w-full h-full object-cover" loading="lazy" />
+                            </a>
+                          ) : null
+                        )}
+                      </div>
                     )}
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3">
                       <a href={`tel:${c.telefono.replace(/[^\d+]/g, "")}`} className="font-display font-semibold text-[14px]" style={{ color: "#16181D" }}>

@@ -3,7 +3,20 @@ import { useEffect, useRef, useState } from "react";
 import CampoSugerido from "@/components/CampoSugerido";
 import { buscarMarcas, buscarModelos } from "@/lib/vehiculos";
 import { limpiarTexto, esTelefonoValido, esEmailValido } from "@/lib/sanitize";
-import { TIPOS, regla, fechaLarga, horaFin, diaSemana, sumarDias, nombreMes, type TipoCita, type DiaAgenda } from "@/lib/agenda";
+import {
+  TIPOS,
+  regla,
+  fechaLarga,
+  horaFin,
+  diaSemana,
+  sumarDias,
+  nombreMes,
+  MAX_FOTOS,
+  LADO_FOTO,
+  MAX_BYTES_FOTO,
+  type TipoCita,
+  type DiaAgenda,
+} from "@/lib/agenda";
 import { WA_URL, TELEFONO_VISIBLE, GOOGLE_MAPS_URL, DIRECCION } from "@/lib/site";
 
 const ROJO = "#D0021B";
@@ -50,7 +63,7 @@ function Icono({ d, size = 26 }: { d: React.ReactNode; size?: number }) {
     </svg>
   );
 }
-const ICONOS: Record<TipoCita | "calendario" | "persona", React.ReactNode> = {
+const ICONOS: Record<TipoCita | "calendario" | "camara", React.ReactNode> = {
   particular: (
     <>
       <path d="M3 16v-3.5L5.2 7.6A2 2 0 0 1 7 6.5h10a2 2 0 0 1 1.8 1.1L21 12.5V16" />
@@ -79,10 +92,10 @@ const ICONOS: Record<TipoCita | "calendario" | "persona", React.ReactNode> = {
       <path d="M3 10h18M8 3v4M16 3v4" />
     </>
   ),
-  persona: (
+  camara: (
     <>
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+      <path d="M4 8h3l2-3h6l2 3h3v11H4z" />
+      <circle cx="12" cy="13" r="3.5" />
     </>
   ),
 };
@@ -183,6 +196,36 @@ function cambiarMes(mes: string, paso: number): string {
   return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, "0")}`;
 }
 
+type Foto = { blob: Blob; vista: string };
+
+/**
+ * Achica una foto a JPEG de LADO_FOTO px por lado como maximo. Ademas le saca
+ * los metadatos (entre ellos la ubicacion GPS que guarda el celular).
+ *
+ * La rotacion del celular (EXIF) la aplica el navegador solo al leer la
+ * imagen: no se rota a mano, o queda girada dos veces (ver Trampas conocidas).
+ */
+async function achicarFoto(archivo: File): Promise<Blob> {
+  const url = URL.createObjectURL(archivo);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const escala = Math.min(1, LADO_FOTO / Math.max(img.naturalWidth, img.naturalHeight));
+    const lienzo = document.createElement("canvas");
+    lienzo.width = Math.round(img.naturalWidth * escala);
+    lienzo.height = Math.round(img.naturalHeight * escala);
+    lienzo.getContext("2d")?.drawImage(img, 0, 0, lienzo.width, lienzo.height);
+    for (const calidad of [0.82, 0.7, 0.55]) {
+      const blob = await new Promise<Blob | null>((listo) => lienzo.toBlob(listo, "image/jpeg", calidad));
+      if (blob && blob.size <= MAX_BYTES_FOTO) return blob;
+    }
+    throw new Error("La foto sigue pesando demasiado");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export default function AgendarHora() {
   const [paso, setPaso] = useState<NumeroPaso>(1);
   const [tipo, setTipo] = useState<TipoCita | null>(null);
@@ -196,10 +239,49 @@ export default function AgendarHora() {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
   const [listo, setListo] = useState<Confirmada | null>(null);
+  const [fotos, setFotos] = useState<Foto[]>([]);
+  const [procesando, setProcesando] = useState(false);
+
+  // Las vistas previas ocupan memoria hasta que se liberan
+  const fotosVivas = useRef<Foto[]>([]);
+  useEffect(() => {
+    fotosVivas.current = fotos;
+  }, [fotos]);
+  useEffect(() => () => fotosVivas.current.forEach((f) => URL.revokeObjectURL(f.vista)), []);
+
+  async function agregarFotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const elegidas = Array.from(e.target.files ?? []);
+    e.target.value = ""; // asi se puede volver a elegir la misma foto
+    const espacio = MAX_FOTOS - fotos.length;
+    if (!elegidas.length || espacio <= 0) return;
+
+    setProcesando(true);
+    setError("");
+    const nuevas: Foto[] = [];
+    let fallidas = 0;
+    for (const archivo of elegidas.slice(0, espacio)) {
+      try {
+        const blob = await achicarFoto(archivo);
+        nuevas.push({ blob, vista: URL.createObjectURL(blob) });
+      } catch {
+        fallidas++;
+      }
+    }
+    setFotos((antes) => [...antes, ...nuevas]);
+    setProcesando(false);
+    if (fallidas) setError(`No pudimos leer ${fallidas === 1 ? "una de las fotos" : `${fallidas} fotos`}. Prueba con otra.`);
+    else if (elegidas.length > espacio) setError(`Puedes adjuntar hasta ${MAX_FOTOS} fotos.`);
+  }
+
+  function quitarFoto(i: number) {
+    URL.revokeObjectURL(fotos[i].vista);
+    setFotos(fotos.filter((_, j) => j !== i));
+  }
 
   const refTipo = useRef<HTMLDivElement>(null);
   const refDia = useRef<HTMLDivElement>(null);
   const refDatos = useRef<HTMLDivElement>(null);
+  const refRaiz = useRef<HTMLDivElement>(null);
   const consulta = useRef(0); // si cambian de tipo rapido, la respuesta vieja se ignora
   const primerPintado = useRef(true);
 
@@ -281,17 +363,21 @@ export default function AgendarHora() {
     setError("");
     setEnviando(true);
     try {
-      const res = await fetch("/api/agenda", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, nombre, telefono, email, tipo, fecha, hora }),
-      });
+      // Formulario y no JSON: asi viajan las fotos
+      const datos = new FormData();
+      for (const [clave, valor] of Object.entries({ ...form, nombre, telefono, email, tipo, fecha, hora })) {
+        datos.append(clave, valor);
+      }
+      fotos.forEach((f, i) => datos.append("fotos", f.blob, `foto-${i + 1}.jpg`));
+
+      const res = await fetch("/api/agenda", { method: "POST", body: datos });
       const json = await res.json().catch(() => null);
 
       if (res.ok && json?.ok) {
         // Con el campo trampa lleno la API responde ok sin cita: no hay nada que mostrar
         if (json.cita) setListo({ ...json.cita, correo: Boolean(json.correo) });
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        // En el inicio la agenda esta abajo: se sube hasta la confirmacion, no al tope de la pagina
+        requestAnimationFrame(() => refRaiz.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
         return;
       }
       if (res.status === 409) {
@@ -319,12 +405,14 @@ export default function AgendarHora() {
     setHora(null);
     setDias(null);
     setForm(formVacio);
+    fotos.forEach((f) => URL.revokeObjectURL(f.vista));
+    setFotos([]);
   }
 
   // ——— Confirmacion ———
   if (listo) {
     return (
-      <div className="rounded-2xl bg-white p-7 sm:p-12 text-center" style={{ border: `1px solid ${BORDE}` }}>
+      <div ref={refRaiz} className="rounded-2xl bg-white p-7 sm:p-12 text-center scroll-mt-28" style={{ border: `1px solid ${BORDE}` }}>
         <span className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-6" style={{ background: ROJO, color: "#fff" }}>
           <Icono d={<path d="M5 12.5l4.5 4.5L19 7.5" />} size={32} />
         </span>
@@ -370,7 +458,7 @@ export default function AgendarHora() {
   const sinHoras = dias !== null && dias.every((d) => d.horas.length === 0);
 
   return (
-    <div className="rounded-2xl bg-white px-5 sm:px-10" style={{ border: `1px solid ${BORDE}` }}>
+    <div ref={refRaiz} className="rounded-2xl bg-white px-5 sm:px-10 scroll-mt-28" style={{ border: `1px solid ${BORDE}` }}>
       {/* ——— 1. Tipo de atención ——— */}
       <Paso
         numero={1}
@@ -637,8 +725,49 @@ export default function AgendarHora() {
                 </>
               )}
               <div className="sm:col-span-2">
-                <label htmlFor="agenda-comentario" className={etiqueta}>¿Qué le pasó al auto? <span className="font-normal" style={{ color: GRIS }}>(opcional)</span></label>
-                <textarea id="agenda-comentario" className={campo} rows={3} value={form.comentario} onChange={cambiar("comentario")} placeholder="Ej: choque en la puerta trasera derecha" maxLength={400} style={{ resize: "vertical" }} />
+                <label htmlFor="agenda-comentario" className={etiqueta}>Observaciones <span className="font-normal" style={{ color: GRIS }}>(opcional)</span></label>
+                <textarea id="agenda-comentario" className={campo} rows={3} value={form.comentario} onChange={cambiar("comentario")} placeholder="Cuéntanos qué le pasó al auto o lo que quieras que sepamos" maxLength={400} style={{ resize: "vertical" }} />
+              </div>
+
+              {/* Fotos del daño: se achican aca mismo antes de subir */}
+              <div className="sm:col-span-2">
+                <span className={etiqueta}>
+                  Fotos del daño <span className="font-normal" style={{ color: GRIS }}>(opcional, hasta {MAX_FOTOS})</span>
+                </span>
+                <div className="flex flex-wrap gap-2.5">
+                  {fotos.map((f, i) => (
+                    <div key={f.vista} className="relative w-[84px] h-[84px] rounded-xl overflow-hidden" style={{ border: `1px solid ${BORDE}` }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), no pasa por next/image */}
+                      <img src={f.vista} alt={`Foto ${i + 1} del daño`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => quitarFoto(i)}
+                        aria-label={`Quitar la foto ${i + 1}`}
+                        className="absolute top-1 right-1 w-7 h-7 rounded-full flex items-center justify-center"
+                        style={{ background: "rgba(22,24,29,0.78)", color: "#fff" }}
+                      >
+                        <Icono d={<path d="M7 7l10 10M17 7L7 17" />} size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {fotos.length < MAX_FOTOS && (
+                    <label
+                      className="w-[84px] h-[84px] rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors hover:border-[#16181D]"
+                      style={{ border: "1.5px dashed #D5D2CC", color: procesando ? GRIS : TINTA, opacity: procesando ? 0.6 : 1 }}
+                    >
+                      {procesando ? (
+                        <span className="inline-block w-6 h-6 rounded-full border-[3px] animate-spin" style={{ borderColor: "#F0B9BF", borderTopColor: ROJO }} />
+                      ) : (
+                        <Icono d={ICONOS.camara} size={24} />
+                      )}
+                      <span className="font-display font-semibold text-[12px]">{procesando ? "Cargando" : "Agregar"}</span>
+                      <input type="file" accept="image/*" multiple className="sr-only" onChange={agregarFotos} disabled={procesando} />
+                    </label>
+                  )}
+                </div>
+                <span className="block text-[13px] mt-2" style={{ color: GRIS }}>
+                  Con fotos te podemos orientar antes de que vengas.
+                </span>
               </div>
             </div>
 
@@ -659,7 +788,7 @@ export default function AgendarHora() {
 
             <button
               type="submit"
-              disabled={enviando}
+              disabled={enviando || procesando}
               className="self-start font-display font-semibold text-[15px] px-12 py-4 rounded-full transition-opacity hover:opacity-85 disabled:opacity-60"
               style={{ background: ROJO, color: "#fff" }}
             >
