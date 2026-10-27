@@ -4,7 +4,7 @@ import { correoConfigurado, transporte, logoAdjunto } from "@/lib/correo";
 import { crearIcs, type EventoCalendario } from "@/lib/ics";
 import { regla, fechaLarga, horaFin } from "@/lib/agenda";
 import type { Cita } from "@/lib/citas";
-import { EMAIL_CONTACTO, TELEFONO_VISIBLE, WA_URL, INSTAGRAM, DIRECCION, MAPS_URL, SITE_URL, enlaceWhatsApp } from "@/lib/site";
+import { EMAIL_CONTACTO, TELEFONO_VISIBLE, WA_URL, INSTAGRAM, DIRECCION, GOOGLE_MAPS_URL, SITE_URL, enlaceWhatsApp } from "@/lib/site";
 
 /**
  * Correos de la agenda: la confirmacion al cliente y el aviso al taller, los
@@ -178,7 +178,7 @@ export async function avisarReserva(c: Cita): Promise<{ cliente: boolean; taller
         ["Atención", escapar(r.nombre)],
         ["Día", escapar(mayuscula(dia))],
         ["Hora", escapar(horario)],
-        ["Dónde", `<a href="${MAPS_URL}" style="color:#16181D">${escapar(DIRECCION)}</a>`],
+        ["Dónde", `<a href="${GOOGLE_MAPS_URL}" style="color:#16181D">${escapar(DIRECCION)}</a>`],
       ])}
       ${destacado(
         "Guarda la hora en tu calendario",
@@ -199,7 +199,7 @@ export async function avisarReserva(c: Cita): Promise<{ cliente: boolean; taller
     `Día: ${mayuscula(dia)}`,
     `Hora: ${horario}`,
     `Dónde: ${DIRECCION}`,
-    `Cómo llegar: ${MAPS_URL}`,
+    `Cómo llegar: ${GOOGLE_MAPS_URL}`,
     "",
     "Este correo trae la invitación de calendario: ábrela para guardar la hora.",
     `Si no puedes venir, avísanos por WhatsApp al ${TELEFONO_VISIBLE} o respondiendo este correo.`,

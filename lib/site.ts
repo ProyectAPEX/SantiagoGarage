@@ -11,9 +11,8 @@ export const TELEFONO_VISIBLE = process.env.NEXT_PUBLIC_WHATSAPP_VISIBLE ?? "+56
  */
 export const EMAIL_CONTACTO = "cotizaciones.santiago@santiagogarage.cl";
 
-/** Direccion del taller, para correos, invitaciones de calendario y mapas. */
+/** Direccion del taller, para correos e invitaciones de calendario. */
 export const DIRECCION = "Ureta Cox 1038, San Miguel, Santiago";
-export const MAPS_URL = "https://maps.google.com/?q=Ureta+Cox+1038+San+Miguel+Santiago";
 
 /** URL publica del sitio (los correos necesitan enlaces absolutos). */
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://santiagogarage.cl").replace(/\/$/, "");

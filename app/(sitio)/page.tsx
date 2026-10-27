@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import FormularioContacto from "@/components/FormularioContacto";
+import AgendarHora from "@/components/AgendarHora";
+import { TEXTO_AGENDA } from "@/lib/agenda";
 import Reveal from "@/components/anim/Reveal";
 import Tilt from "@/components/anim/Tilt";
 import CountUp from "@/components/anim/CountUp";
@@ -225,8 +226,25 @@ export default function Inicio() {
         </div>
       </section>
 
-      {/* FORMULARIO */}
-      <FormularioContacto />
+      {/* AGENDA: en el lugar del antiguo "Escríbenos" */}
+      <section id="agendar" className="px-5 sm:px-10 py-16 sm:py-24 scroll-mt-20">
+        <div className="max-w-[1000px] mx-auto">
+          <Reveal>
+            <div className="text-center mb-10 sm:mb-12">
+              <p className="font-display text-[13px] font-medium tracking-[3px] uppercase mb-4" style={{ color: "#D0021B" }}>
+                Agenda en línea
+              </p>
+              <h2 className="font-display font-bold uppercase mb-4" style={{ fontSize: "clamp(32px,4vw,52px)", lineHeight: 1.1, letterSpacing: "-1.5px" }}>
+                Agenda tu hora
+              </h2>
+              <p className="text-[16px] font-light max-w-[560px] mx-auto" style={{ color: "#6B7280", lineHeight: 1.7 }}>
+                {TEXTO_AGENDA}
+              </p>
+            </div>
+          </Reveal>
+          <AgendarHora />
+        </div>
+      </section>
 
       {/* CTA */}
       <section className="px-5 sm:px-10 py-16 sm:py-24">

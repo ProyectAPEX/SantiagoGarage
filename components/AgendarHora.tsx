@@ -4,7 +4,7 @@ import CampoSugerido from "@/components/CampoSugerido";
 import { buscarMarcas, buscarModelos } from "@/lib/vehiculos";
 import { limpiarTexto, esTelefonoValido, esEmailValido } from "@/lib/sanitize";
 import { TIPOS, regla, fechaLarga, horaFin, diaSemana, sumarDias, nombreMes, type TipoCita, type DiaAgenda } from "@/lib/agenda";
-import { WA_URL, TELEFONO_VISIBLE, MAPS_URL, DIRECCION } from "@/lib/site";
+import { WA_URL, TELEFONO_VISIBLE, GOOGLE_MAPS_URL, DIRECCION } from "@/lib/site";
 
 const ROJO = "#D0021B";
 const TINTA = "#16181D";
@@ -352,7 +352,7 @@ export default function AgendarHora() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <a href={MAPS_URL} target="_blank" rel="noopener noreferrer" className="font-display font-semibold text-[15px] px-8 py-4 rounded-full" style={{ background: ROJO, color: "#fff" }}>
+          <a href={GOOGLE_MAPS_URL} target="_blank" rel="noopener noreferrer" className="font-display font-semibold text-[15px] px-8 py-4 rounded-full" style={{ background: ROJO, color: "#fff" }}>
             Cómo llegar
           </a>
           <button type="button" onClick={otraHora} className="font-display font-semibold text-[15px] px-8 py-4 rounded-full" style={{ border: "1px solid #D5D2CC", color: TINTA }}>
@@ -665,6 +665,9 @@ export default function AgendarHora() {
             >
               {enviando ? "Reservando..." : "Confirmar hora"}
             </button>
+            <p className="text-[12px]" style={{ color: "#9CA3AF" }}>
+              Usamos tus datos solo para agendar y confirmar tu hora.
+            </p>
           </form>
         )}
       </Paso>

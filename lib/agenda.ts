@@ -232,3 +232,7 @@ export function agendaDelTipo(
   }
   return dias;
 }
+
+/** Bajada de la agenda: la usan el inicio y /agendar. */
+export const TEXTO_AGENDA =
+  "Elige qué necesita tu auto y la hora que más te acomode, de lunes a viernes. Te llega la confirmación al correo.";

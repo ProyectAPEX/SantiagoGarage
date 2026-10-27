@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Reveal from "@/components/anim/Reveal";
 import AgendarHora from "@/components/AgendarHora";
+import { TEXTO_AGENDA } from "@/lib/agenda";
 
 export const metadata: Metadata = {
   title: "Agenda tu hora",
@@ -22,7 +23,7 @@ export default function Agendar() {
               Agenda tu hora
             </h1>
             <p className="text-[17px] font-light max-w-[560px]" style={{ color: "#6B7280", lineHeight: 1.7 }}>
-              Elige qué necesita tu auto y la hora que más te acomode, de lunes a viernes. Te llega la confirmación al correo.
+              {TEXTO_AGENDA}
             </p>
           </Reveal>
         </div>
