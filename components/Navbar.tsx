@@ -9,6 +9,7 @@ import { abrirEntrada } from "./EntradaSecreta";
 const links = [
   { href: "/", label: "Inicio" },
   { href: "/servicios", label: "Servicios" },
+  { href: "/agendar", label: "Agendar hora" },
   { href: "/contacto", label: "Contacto" },
 ];
 

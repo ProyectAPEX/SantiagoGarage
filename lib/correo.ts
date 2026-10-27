@@ -20,7 +20,7 @@ export function correoConfigurado(): boolean {
   return Boolean(variable("SMTP_HOST") && variable("SMTP_USER") && variable("SMTP_PASSWORD"));
 }
 
-function transporte() {
+export function transporte() {
   const puerto = Number(variable("SMTP_PORT") || 465);
   return nodemailer.createTransport({
     host: variable("SMTP_HOST"),
@@ -35,7 +35,7 @@ function transporte() {
  * correos que cargan imagenes de afuera quedan con el hueco gris hasta que el
  * cliente aprieta "mostrar imagenes".
  */
-async function logoAdjunto() {
+export async function logoAdjunto() {
   try {
     const archivo = await readFile(path.join(process.cwd(), "public", "logo-nav.png"));
     return { filename: "santiago-garage.png", content: archivo, cid: "logo-taller", contentType: "image/png" };

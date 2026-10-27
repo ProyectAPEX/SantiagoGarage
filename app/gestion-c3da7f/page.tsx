@@ -2,6 +2,7 @@ import Link from "next/link";
 import { exigirAcceso } from "@/lib/acceso-panel";
 import { resumenPanel } from "@/lib/presupuestos";
 import { contarSolicitudesNuevas } from "@/lib/solicitudes";
+import { contarProximas } from "@/lib/citas";
 import { baseConfigurada } from "@/lib/supabase";
 import { formatCLP } from "@/lib/presupuesto-pdf";
 import { RUTA_PANEL } from "@/lib/panel";
@@ -20,8 +21,9 @@ const MES = new Intl.DateTimeFormat("es-CL", { timeZone: ZONA, month: "long" });
 /** Tablero del taller: lo del mes, los últimos presupuestos y los accesos. */
 export default async function Panel() {
   await exigirAcceso();
-  const resumen = baseConfigurada() ? await resumenPanel() : null;
-  const nuevas = baseConfigurada() ? await contarSolicitudesNuevas() : null;
+  const [resumen, nuevas, proximas] = baseConfigurada()
+    ? await Promise.all([resumenPanel(), contarSolicitudesNuevas(), contarProximas()])
+    : [null, null, null];
   const mes = MES.format(new Date());
 
   const tarjeta = "rounded-2xl p-4 bg-white";
@@ -117,6 +119,27 @@ export default async function Panel() {
         )}
 
         {/* Accesos */}
+        <Link
+          href={`${RUTA_PANEL}/agenda`}
+          className={tarjeta + " flex items-center justify-between gap-3 mb-3"}
+          style={{ ...borde, color: "#16181D" }}
+        >
+          <span>
+            <span className="block font-display font-semibold text-[15px]">Agenda</span>
+            <span className="block text-[13px]" style={{ color: "#6B7280" }}>
+              {proximas === null
+                ? "Horas tomadas desde la web"
+                : proximas === 0
+                  ? "Sin horas en los próximos 7 días"
+                  : `${proximas} hora${proximas === 1 ? "" : "s"} en los próximos 7 días`}
+            </span>
+          </span>
+          {!!proximas && (
+            <span className="font-display font-bold text-[12px] px-2.5 py-1 rounded-full" style={{ background: "#D0021B", color: "#fff" }}>
+              {proximas}
+            </span>
+          )}
+        </Link>
         <div className="grid grid-cols-2 gap-3">
           <Link href={`${RUTA_PANEL}/historial`} className={tarjeta + " text-center font-display font-semibold text-[15px]"} style={{ ...borde, color: "#16181D" }}>
             Historial

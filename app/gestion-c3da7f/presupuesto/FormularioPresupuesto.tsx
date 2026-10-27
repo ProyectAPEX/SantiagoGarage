@@ -10,7 +10,7 @@ import { limpiarTexto, esTelefonoValido, esEmailValido } from "@/lib/sanitize";
 import { formatearRut, rutValido, limpiarRut } from "@/lib/rut";
 import { marcarCotizada, anotarPresupuesto, enviarPorCorreo } from "../acciones";
 import BotonSalir from "../BotonSalir";
-import CampoSugerido from "./CampoSugerido";
+import CampoSugerido from "@/components/CampoSugerido";
 import { buscarMarcas, buscarModelos, buscarColores } from "@/lib/vehiculos";
 import { buscarComunas } from "@/lib/comunas";
 import { SERVICIOS, OTRO } from "@/lib/trabajos";

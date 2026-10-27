@@ -11,7 +11,25 @@ export const TELEFONO_VISIBLE = process.env.NEXT_PUBLIC_WHATSAPP_VISIBLE ?? "+56
  */
 export const EMAIL_CONTACTO = "cotizaciones.santiago@santiagogarage.cl";
 
+/** Direccion del taller, para correos, invitaciones de calendario y mapas. */
+export const DIRECCION = "Ureta Cox 1038, San Miguel, Santiago";
+export const MAPS_URL = "https://maps.google.com/?q=Ureta+Cox+1038+San+Miguel+Santiago";
+
+/** URL publica del sitio (los correos necesitan enlaces absolutos). */
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://santiagogarage.cl").replace(/\/$/, "");
+
 export const WA_URL = `https://wa.me/${TELEFONO_WHATSAPP}`;
+
+/**
+ * Enlace de WhatsApp para el telefono de un cliente, como lo haya escrito:
+ * "9 1234 5678" -> https://wa.me/56912345678. null si no parece un celular.
+ */
+export function enlaceWhatsApp(telefono: string): string | null {
+  let n = telefono.replace(/\D/g, "");
+  if (n.length === 8) n = "569" + n;
+  else if (n.length === 9 && n.startsWith("9")) n = "56" + n;
+  return n.length >= 10 ? `https://wa.me/${n}` : null;
+}
 
 /** Horario de atencion. Unico lugar donde se define: de aqui salen el pie,
  *  contacto, la descripcion para Google y los datos estructurados. */

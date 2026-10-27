@@ -53,8 +53,11 @@ export default async function proxy(req: NextRequest) {
     });
   }
 
-  // El formulario público escribe en la base: límite mucho más estricto contra spam
-  if (req.nextUrl.pathname === "/api/solicitudes" && req.method === "POST") {
+  // Los formularios públicos escriben en la base: límite mucho más estricto
+  // contra spam. La agenda comparte el contador con el contacto: quien llena
+  // la agenda de horas falsas es el mismo que manda solicitudes falsas.
+  const ruta = req.nextUrl.pathname;
+  if ((ruta === "/api/solicitudes" || ruta === "/api/agenda") && req.method === "POST") {
     if (!permitir(`solicitud:${ip}`, 5, 10 * 60_000)) {
       return NextResponse.json(
         { ok: false, error: "Demasiadas solicitudes seguidas. Intenta en unos minutos." },

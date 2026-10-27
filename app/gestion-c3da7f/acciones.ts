@@ -4,6 +4,8 @@ import { cambiarEstado } from "@/lib/solicitudes";
 import { guardarPresupuesto, eliminarPresupuesto, type EntradaPresupuesto } from "@/lib/presupuestos";
 import { enviarPresupuestoPorCorreo, type CorreoPresupuesto } from "@/lib/correo";
 import { esEmailValido } from "@/lib/sanitize";
+import { cancelarCita, bloquearDia, desbloquearDia } from "@/lib/citas";
+import { avisarCancelacion } from "@/lib/correo-agenda";
 
 // Acciones del panel. Next las expone como endpoints que se pueden llamar
 // desde cualquier ruta del sitio, no solo desde el panel: por eso cada una
@@ -50,4 +52,28 @@ export async function enviarPorCorreo(datos: CorreoPresupuesto): Promise<string>
 export async function reabrirSolicitud(id: string): Promise<boolean> {
   await exigirAcceso();
   return typeof id === "string" && cambiarEstado(id, "nueva");
+}
+
+/**
+ * Cancela una hora de la agenda: queda libre en la web y al cliente le llega
+ * el aviso, que tambien la saca de su calendario.
+ */
+export async function cancelarHora(id: string): Promise<{ ok: boolean; correo: boolean }> {
+  await exigirAcceso();
+  if (typeof id !== "string") return { ok: false, correo: false };
+  const cita = await cancelarCita(id);
+  if (!cita) return { ok: false, correo: false };
+  const aviso = await avisarCancelacion(cita);
+  return { ok: true, correo: aviso.cliente };
+}
+
+/** Cierra un dia completo en la agenda publica (vacaciones, un imprevisto). */
+export async function cerrarDia(fecha: string, motivo: string): Promise<boolean> {
+  await exigirAcceso();
+  return typeof fecha === "string" && bloquearDia(fecha, typeof motivo === "string" ? motivo : "");
+}
+
+export async function abrirDia(fecha: string): Promise<boolean> {
+  await exigirAcceso();
+  return typeof fecha === "string" && desbloquearDia(fecha);
 }
