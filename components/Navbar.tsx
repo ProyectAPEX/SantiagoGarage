@@ -9,7 +9,6 @@ import { abrirEntrada } from "./EntradaSecreta";
 const links = [
   { href: "/", label: "Inicio" },
   { href: "/servicios", label: "Servicios" },
-  { href: "/agendar", label: "Agendar hora" },
   { href: "/contacto", label: "Contacto" },
 ];
 
@@ -80,11 +79,11 @@ export default function Navbar() {
           </a>
 
           <Link
-            href="/contacto"
+            href="/agendar"
             className="font-display font-semibold text-[14px] px-6 py-3 rounded-lg transition-opacity hover:opacity-90"
             style={{ background: "#D0021B", color: "#fff" }}
           >
-            Cotizar
+            Agendar hora
           </Link>
         </div>
 
@@ -128,12 +127,12 @@ export default function Navbar() {
           </li>
           <li className="pt-1">
             <Link
-              href="/contacto"
+              href="/agendar"
               onClick={() => setOpen(false)}
               className="flex items-center justify-center font-display font-semibold text-[15px] px-6 py-3.5 rounded-lg"
               style={{ background: "#D0021B", color: "#fff" }}
             >
-              Cotizar
+              Agendar hora
             </Link>
           </li>
         </ul>
