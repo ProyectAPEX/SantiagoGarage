@@ -3,16 +3,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
-import { TELEFONO_VISIBLE, TEL_URL } from "@/lib/site";
+import { TELEFONO_VISIBLE, TEL_URL, WA_COTIZAR } from "@/lib/site";
 import { abrirEntrada } from "./EntradaSecreta";
 
-// "Cotizar" y "Contacto" llevan a la misma pagina: solo Contacto se marca
-// como pagina actual, para que no queden dos subrayados
+// "Cotizar" abre WhatsApp con el mensaje ya escrito, como hacia el antiguo
+// formulario "Escribenos": llevar a Contacto parecia un boton que no hace nada
 const links = [
-  { href: "/", label: "Inicio", marcar: true },
-  { href: "/servicios", label: "Servicios", marcar: true },
-  { href: "/contacto", label: "Cotizar", marcar: false },
-  { href: "/contacto", label: "Contacto", marcar: true },
+  { href: "/", label: "Inicio", externo: false },
+  { href: "/servicios", label: "Servicios", externo: false },
+  { href: WA_COTIZAR, label: "Cotizar", externo: true },
+  { href: "/contacto", label: "Contacto", externo: false },
 ];
 
 function IconoTelefono() {
@@ -59,11 +59,12 @@ export default function Navbar() {
         <div className="hidden lg:flex items-center gap-8">
           <ul className="flex items-center gap-7 list-none">
             {links.map((l) => {
-              const activo = l.marcar && pathname === l.href;
+              const activo = pathname === l.href;
               return (
                 <li key={l.label}>
                   <Link
                     href={l.href}
+                    {...(l.externo ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                     className="font-display text-[14px] font-medium transition-colors duration-200 pb-1"
                     style={{ color: activo ? "#16181D" : "#6B7280", borderBottom: activo ? "2px solid #D0021B" : "2px solid transparent" }}
                   >
@@ -114,9 +115,10 @@ export default function Navbar() {
             <li key={l.label}>
               <Link
                 href={l.href}
+                {...(l.externo ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                 onClick={() => setOpen(false)}
                 className="font-display text-[17px] font-medium block py-3"
-                style={{ color: l.marcar && pathname === l.href ? "#D0021B" : "#16181D" }}
+                style={{ color: pathname === l.href ? "#D0021B" : "#16181D" }}
               >
                 {l.label}
               </Link>

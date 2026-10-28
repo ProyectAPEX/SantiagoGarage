@@ -6,7 +6,7 @@ import { TEXTO_AGENDA } from "@/lib/agenda";
 import Reveal from "@/components/anim/Reveal";
 import Tilt from "@/components/anim/Tilt";
 import CountUp from "@/components/anim/CountUp";
-import { GOOGLE_MAPS_URL, FOTO_INICIO, FOTO_INICIO_ENCUADRE } from "@/lib/site";
+import { GOOGLE_MAPS_URL, FOTO_INICIO, FOTO_INICIO_ENCUADRE, WA_COTIZAR } from "@/lib/site";
 import { SERVICIOS } from "@/lib/servicios";
 
 const Icono = {
@@ -90,13 +90,15 @@ export default function Inicio() {
                 </Link>
               </motion.div>
               <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
-                <Link
-                  href="/contacto"
+                <a
+                  href={WA_COTIZAR}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center justify-center font-display font-semibold text-[15px] px-7 py-4 rounded-lg transition-colors hover:bg-[#16181D] hover:text-white"
                   style={{ border: "2px solid #16181D", color: "#16181D" }}
                 >
                   Cotizar ahora
-                </Link>
+                </a>
               </motion.div>
             </motion.div>
             <motion.p variants={heroItem} className="text-[13px] mt-5 leading-relaxed" style={{ color: "#6B7280" }}>

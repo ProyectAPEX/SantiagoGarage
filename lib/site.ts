@@ -19,6 +19,9 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://santiagoga
 
 export const WA_URL = `https://wa.me/${TELEFONO_WHATSAPP}`;
 
+/** WhatsApp con el mensaje de cotizacion ya escrito: es lo que hace "Cotizar". */
+export const WA_COTIZAR = `${WA_URL}?text=${encodeURIComponent("Hola, quiero cotizar un servicio")}`;
+
 /**
  * Enlace de WhatsApp para el telefono de un cliente, como lo haya escrito:
  * "9 1234 5678" -> https://wa.me/56912345678. null si no parece un celular.

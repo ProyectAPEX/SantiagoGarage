@@ -1,6 +1,6 @@
 "use client";
 import Reveal from "@/components/anim/Reveal";
-import { WA_URL, TELEFONO_VISIBLE, EMAIL_CONTACTO, HORARIO_VISIBLE } from "@/lib/site";
+import { WA_URL, WA_COTIZAR, TELEFONO_VISIBLE, EMAIL_CONTACTO, HORARIO_VISIBLE } from "@/lib/site";
 
 export default function Contacto() {
   return (
@@ -57,7 +57,7 @@ export default function Contacto() {
 
             <div className="flex flex-col gap-3 mt-10">
               <a
-                href={`${WA_URL}?text=Hola%2C%20quiero%20cotizar%20un%20servicio`}
+                href={WA_COTIZAR}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-display font-semibold text-[15px] flex items-center justify-center gap-2.5 px-7 py-4 rounded-full transition-opacity hover:opacity-85"

@@ -283,14 +283,15 @@ export default function AgendarHora() {
   const refDatos = useRef<HTMLDivElement>(null);
   const refRaiz = useRef<HTMLDivElement>(null);
   const consulta = useRef(0); // si cambian de tipo rapido, la respuesta vieja se ignora
-  const primerPintado = useRef(true);
+  const pasoAnterior = useRef(paso);
 
-  // Al avanzar, el paso nuevo queda a la vista (en el celular queda abajo)
+  // Al avanzar, el paso nuevo queda a la vista (en el celular queda abajo).
+  // Solo cuando el paso cambia de verdad: al cargar la pagina no se mueve nada
+  // (React en desarrollo corre los efectos dos veces, y con una simple marca
+  // de "primera vez" el inicio saltaba solo hasta la agenda)
   useEffect(() => {
-    if (primerPintado.current) {
-      primerPintado.current = false;
-      return;
-    }
+    if (pasoAnterior.current === paso) return;
+    pasoAnterior.current = paso;
     const destino = paso === 1 ? refTipo : paso === 2 ? refDia : refDatos;
     destino.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [paso]);
