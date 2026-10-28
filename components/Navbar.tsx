@@ -6,10 +6,13 @@ import { useRef, useState } from "react";
 import { TELEFONO_VISIBLE, TEL_URL } from "@/lib/site";
 import { abrirEntrada } from "./EntradaSecreta";
 
+// "Cotizar" y "Contacto" llevan a la misma pagina: solo Contacto se marca
+// como pagina actual, para que no queden dos subrayados
 const links = [
-  { href: "/", label: "Inicio" },
-  { href: "/servicios", label: "Servicios" },
-  { href: "/contacto", label: "Contacto" },
+  { href: "/", label: "Inicio", marcar: true },
+  { href: "/servicios", label: "Servicios", marcar: true },
+  { href: "/contacto", label: "Cotizar", marcar: false },
+  { href: "/contacto", label: "Contacto", marcar: true },
 ];
 
 function IconoTelefono() {
@@ -56,9 +59,9 @@ export default function Navbar() {
         <div className="hidden lg:flex items-center gap-8">
           <ul className="flex items-center gap-7 list-none">
             {links.map((l) => {
-              const activo = pathname === l.href;
+              const activo = l.marcar && pathname === l.href;
               return (
-                <li key={l.href}>
+                <li key={l.label}>
                   <Link
                     href={l.href}
                     className="font-display text-[14px] font-medium transition-colors duration-200 pb-1"
@@ -108,12 +111,12 @@ export default function Navbar() {
       >
         <ul className="flex flex-col list-none px-6 py-4 gap-1">
           {links.map((l) => (
-            <li key={l.href}>
+            <li key={l.label}>
               <Link
                 href={l.href}
                 onClick={() => setOpen(false)}
                 className="font-display text-[17px] font-medium block py-3"
-                style={{ color: pathname === l.href ? "#D0021B" : "#16181D" }}
+                style={{ color: l.marcar && pathname === l.href ? "#D0021B" : "#16181D" }}
               >
                 {l.label}
               </Link>
