@@ -139,7 +139,7 @@ function evento(c: Cita, metodo: EventoCalendario["metodo"], paraTaller: boolean
     asistentes: paraTaller
       ? invitadosDelTaller().map((email) => ({ nombre: "Santiago Garage", email }))
       : [{ nombre: c.nombre, email: c.email }],
-    aviso: paraTaller ? "-PT30M" : "-P1D",
+    aviso: "-P1D", // un dia antes, al cliente y al taller
   });
 }
 

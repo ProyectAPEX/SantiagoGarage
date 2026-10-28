@@ -322,8 +322,7 @@ export async function listarBloqueos(): Promise<Bloqueo[] | null> {
 export async function bloquearDia(fecha: string, motivo: string): Promise<boolean> {
   const db = supabase();
   if (!db || !esFecha(fecha) || fecha < hoyEnChile()) return false;
-  const dia = diaSemana(fecha);
-  if (dia === 0 || dia === 6) return false;
+  if (diaSemana(fecha) === 0) return false; // el domingo ya esta cerrado
   const { error } = await db
     .from("agenda_bloqueos")
     .upsert({ fecha, motivo: limpiarTexto(motivo, 80) || null }, { onConflict: "fecha" });

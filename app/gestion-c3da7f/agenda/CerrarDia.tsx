@@ -28,8 +28,7 @@ export default function CerrarDia({
   function cerrar(e: React.FormEvent) {
     e.preventDefault();
     if (!fecha) return setError("Elige el día.");
-    const dia = diaSemana(fecha);
-    if (dia === 0 || dia === 6) return setError("Sábado y domingo ya están cerrados en la agenda.");
+    if (diaSemana(fecha) === 0) return setError("El domingo ya está cerrado en la agenda.");
     setError("");
     iniciar(async () => {
       const ok = await cerrarDia(fecha, motivo).catch(() => false);

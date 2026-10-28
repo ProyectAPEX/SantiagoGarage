@@ -10,56 +10,62 @@ import { HORARIO } from "@/lib/site";
 
 export type TipoCita = "particular" | "aseguradora" | "presupuesto";
 
+/** Desde y hasta, "HH:MM" en hora de Chile. */
+export type Franja = { desde: string; hasta: string };
+
 export type ReglaTipo = {
   id: TipoCita;
   nombre: string;
   bajada: string;
   /** Cuanto dura la atencion, en minutos. Tambien es el paso entre horas. */
   duracion: number;
-  /** Dias en que se puede agendar: 1 = lunes … 5 = viernes */
-  dias: number[];
-  /** Franja en que la atencion empieza y termina, "HH:MM" en hora de Chile */
-  desde: string;
-  hasta: string;
+  /**
+   * En que franja se agenda cada dia: 1 = lunes … 6 = sabado. Un dia que no
+   * aparece es un dia en que ese tipo no se agenda.
+   */
+  franjas: Partial<Record<number, Franja>>;
   /** Tope de horas de este tipo en un mismo dia. null = sin tope */
   cupoDiario: number | null;
 };
 
+/** Todas las atenciones duran lo mismo: media hora. */
+export const DURACION = 30;
+
+const SEMANA: Franja = { desde: HORARIO.semana.abre, hasta: HORARIO.semana.cierra };
+const SABADO: Franja = { desde: HORARIO.sabado.abre, hasta: HORARIO.sabado.cierra };
+
+/** La misma franja para varios dias. */
+const cadaDia = (numeros: number[], franja: Franja) => Object.fromEntries(numeros.map((d) => [d, franja]));
+
 /**
  * Orden de prioridad que pidio el taller: particular > presupuesto >
- * aseguradora. El particular puede tomar cualquier hora de la semana; el
- * presupuesto, solo las tardes; la aseguradora, solo las mañanas de los dias
- * mas tranquilos (lunes y martes).
+ * aseguradora. El particular puede tomar cualquier hora, de lunes a sabado;
+ * el presupuesto, las tardes de la semana y el sabado (que cierra a mediodia);
+ * la aseguradora, solo las mañanas de los dias mas tranquilos (lunes y martes).
  */
 export const TIPOS: ReglaTipo[] = [
   {
     id: "particular",
     nombre: "Reparación particular",
     bajada: "El trabajo lo pagas tú, sin seguro de por medio",
-    duracion: 60,
-    dias: [1, 2, 3, 4, 5],
-    desde: HORARIO.semana.abre,
-    hasta: HORARIO.semana.cierra,
+    duracion: DURACION,
+    franjas: { ...cadaDia([1, 2, 3, 4, 5], SEMANA), 6: SABADO },
     cupoDiario: null,
   },
   {
     id: "aseguradora",
     nombre: "Siniestro con aseguradora",
     bajada: "Tu compañía de seguros cubre la reparación",
-    duracion: 60,
-    dias: [1, 2],
-    desde: HORARIO.semana.abre,
-    hasta: "12:30",
+    duracion: DURACION,
+    franjas: cadaDia([1, 2], { desde: HORARIO.semana.abre, hasta: "12:30" }),
     cupoDiario: 2,
   },
   {
     id: "presupuesto",
     nombre: "Evaluación y presupuesto",
     bajada: "Revisamos el daño y te cotizamos en el taller",
-    duracion: 30,
-    dias: [1, 2, 3, 4, 5],
-    desde: "15:30",
-    hasta: HORARIO.semana.cierra,
+    duracion: DURACION,
+    franjas: { ...cadaDia([1, 2, 3, 4, 5], { desde: "15:30", hasta: HORARIO.semana.cierra }), 6: SABADO },
     cupoDiario: 3,
   },
 ];
@@ -68,23 +74,27 @@ export const TIPOS: ReglaTipo[] = [
 export const DIAS_ADELANTE = 30;
 
 /**
- * Feriados de Chile en dia de semana (los de fin de semana no importan: esos
- * dias no se agenda). Revisar cada diciembre. Para cerrar un dia puntual
- * (vacaciones, un imprevisto) no hace falta tocar esto: se bloquea desde el
- * panel, en Agenda.
+ * Feriados de Chile de lunes a sabado (el domingo no se agenda igual). Revisar
+ * cada diciembre. Para cerrar un dia puntual (vacaciones, un imprevisto) no
+ * hace falta tocar esto: se cierra desde el panel, en Agenda.
  */
 export const FERIADOS = new Set([
+  "2026-10-31", // Iglesias Evangélicas (sábado)
   "2026-12-08", // Inmaculada Concepción
   "2026-12-25", // Navidad
   "2027-01-01", // Año Nuevo
   "2027-03-26", // Viernes Santo
+  "2027-03-27", // Sábado Santo
+  "2027-05-01", // Día del Trabajo (sábado)
   "2027-05-21", // Glorias Navales
   "2027-06-21", // Pueblos Indígenas
   "2027-06-28", // San Pedro y San Pablo (trasladado)
   "2027-07-16", // Virgen del Carmen
+  "2027-09-18", // Independencia (sábado)
   "2027-10-11", // Encuentro de Dos Mundos (trasladado)
   "2027-11-01", // Todos los Santos
   "2027-12-08", // Inmaculada Concepción
+  "2027-12-25", // Navidad (sábado)
 ]);
 
 export const ZONA = "America/Santiago";
@@ -193,11 +203,12 @@ export type DiaAgenda = { fecha: string; horas: string[] };
  */
 export function horasLibres(tipo: TipoCita, fecha: string, ocupadas: Ocupada[]): string[] {
   const r = regla(tipo);
-  if (!r.dias.includes(diaSemana(fecha))) return [];
+  const franja = r.franjas[diaSemana(fecha)];
+  if (!franja) return [];
   if (r.cupoDiario !== null && ocupadas.filter((o) => o.tipo === tipo).length >= r.cupoDiario) return [];
 
   const libres: string[] = [];
-  for (let m = minutos(r.desde); m + r.duracion <= minutos(r.hasta); m += r.duracion) {
+  for (let m = minutos(franja.desde); m + r.duracion <= minutos(franja.hasta); m += r.duracion) {
     const hora = hhmm(m);
     const inicio = instanteChile(fecha, hora).getTime();
     const fin = inicio + r.duracion * 60_000;
@@ -213,8 +224,8 @@ export function rangoAgendable(ahora = new Date()): { desde: string; hasta: stri
 }
 
 /**
- * Los dias de lunes a viernes del rango, con sus horas libres. Un dia sin
- * horas puede ser feriado, estar bloqueado, no corresponder al tipo o estar
+ * Los dias de lunes a sabado del rango, con sus horas libres. Un dia sin
+ * horas puede ser feriado, estar cerrado, no corresponder al tipo o estar
  * lleno: para quien agenda es lo mismo, no se puede.
  */
 export function agendaDelTipo(
@@ -223,19 +234,18 @@ export function agendaDelTipo(
   ocupadasPorDia: Map<string, Ocupada[]>,
   bloqueados: Set<string>
 ): DiaAgenda[] {
-  const dias: DiaAgenda[] = [];
+  const lista: DiaAgenda[] = [];
   for (let f = rango.desde; f <= rango.hasta; f = sumarDias(f, 1)) {
-    const dia = diaSemana(f);
-    if (dia === 0 || dia === 6) continue;
+    if (diaSemana(f) === 0) continue; // el domingo el taller no abre
     const cerrado = FERIADOS.has(f) || bloqueados.has(f);
-    dias.push({ fecha: f, horas: cerrado ? [] : horasLibres(tipo, f, ocupadasPorDia.get(f) ?? []) });
+    lista.push({ fecha: f, horas: cerrado ? [] : horasLibres(tipo, f, ocupadasPorDia.get(f) ?? []) });
   }
-  return dias;
+  return lista;
 }
 
 /** Bajada de la agenda: la usan el inicio y /agendar. */
 export const TEXTO_AGENDA =
-  "Elige qué necesita tu auto y la hora que más te acomode, de lunes a viernes. Te llega la confirmación al correo.";
+  "Elige qué necesita tu auto y la hora que más te acomode, de lunes a sábado. Te llega la confirmación al correo.";
 
 // ——— Fotos del daño ———
 // Se achican en el navegador antes de subir: una foto de celular pesa 3-5 MB

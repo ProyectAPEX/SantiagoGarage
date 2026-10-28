@@ -177,13 +177,13 @@ function Resumen({ icono, texto, detalle }: { icono: React.ReactNode; texto: str
   );
 }
 
-/** Los dias de lunes a viernes de un mes, con huecos al inicio para que calcen bajo L M M J V. */
+/** Los dias de lunes a sabado de un mes, con huecos al inicio para que calcen bajo L M M J V S. */
 function celdasDelMes(mes: string): (string | null)[] {
   const primero = `${mes}-01`;
   const celdas: (string | null)[] = [];
   for (let f = primero; f.startsWith(mes); f = sumarDias(f, 1)) {
     const d = diaSemana(f);
-    if (d === 0 || d === 6) continue;
+    if (d === 0) continue;
     if (celdas.length === 0) for (let i = 1; i < d; i++) celdas.push(null);
     celdas.push(f);
   }
@@ -511,7 +511,7 @@ export default function AgendarHora() {
           paso === 3 && fecha && hora ? (
             <Resumen icono={ICONOS.calendario} texto={`${mayuscula(fechaLarga(fecha))}`} detalle={tipo ? `${hora} a ${horaFin(tipo, hora)}` : hora} />
           ) : paso === 2 ? (
-            <span className="text-[15px]" style={{ color: GRIS }}>Elige el día y la hora de lunes a viernes</span>
+            <span className="text-[15px]" style={{ color: GRIS }}>Elige el día y la hora de lunes a sábado</span>
           ) : undefined
         }
         alCambiar={paso === 3 ? () => setPaso(2) : undefined}
@@ -581,8 +581,8 @@ export default function AgendarHora() {
                       <Icono d={<path d="M9 6l6 6-6 6" />} size={18} />
                     </button>
                   </div>
-                  <div className="grid grid-cols-5 gap-1.5 text-center">
-                    {["Lun", "Mar", "Mié", "Jue", "Vie"].map((d) => (
+                  <div className="grid grid-cols-6 gap-1.5 text-center">
+                    {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].map((d) => (
                       <span key={d} className="font-display text-[12px] font-semibold uppercase py-1" style={{ color: GRIS }}>{d}</span>
                     ))}
                     {celdasDelMes(mes).map((f, i) => {
