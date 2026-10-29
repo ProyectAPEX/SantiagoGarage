@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { esTipo, regla, fechaLarga, horaFin, MAX_FOTOS } from "@/lib/agenda";
+import { esTipo, regla, fechaLarga, horaFin, agendaDelTipo, rangoAgendable, MAX_FOTOS } from "@/lib/agenda";
 import { disponibilidad, validarCita, reservarCita, esFotoValida, guardarFotos } from "@/lib/citas";
 import { avisarReserva } from "@/lib/correo-agenda";
 import { whatsappConfigurado } from "@/lib/whatsapp";
@@ -24,8 +24,9 @@ export async function GET(req: NextRequest) {
   const tipo = req.nextUrl.searchParams.get("tipo");
   if (!esTipo(tipo)) return NextResponse.json({ ok: false, error: "Tipo de atención inválido." }, { status: 400 });
 
-  const dias = await disponibilidad(tipo);
-  if (!dias) return NextResponse.json({ ok: false, error: SIN_AGENDA }, { status: 503 });
+  // Si la base no responde, el calendario igual aparece, armado solo con las
+  // reglas del taller. Al reservar se revisa la hora contra la base de nuevo
+  const dias = (await disponibilidad(tipo)) ?? agendaDelTipo(tipo, rangoAgendable(), new Map(), new Set());
   // recordatorio: si esta conectado WhatsApp, el formulario avisa que llegara uno
   return NextResponse.json({ ok: true, dias, recordatorio: whatsappConfigurado() }, { headers: { "Cache-Control": "no-store" } });
 }

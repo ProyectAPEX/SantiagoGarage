@@ -240,6 +240,8 @@ export default function AgendarHora() {
   const [form, setForm] = useState(formVacio);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
+  // La reserva no se pudo guardar por un problema nuestro: se ofrece WhatsApp con todo ya escrito
+  const [sinGuardar, setSinGuardar] = useState(false);
   const [listo, setListo] = useState<Confirmada | null>(null);
   const [fotos, setFotos] = useState<Foto[]>([]);
   const [procesando, setProcesando] = useState(false);
@@ -309,7 +311,14 @@ export default function AgendarHora() {
     setCargando(true);
     setErrorAgenda("");
     try {
-      const res = await fetch(`/api/agenda?tipo=${t}`, { cache: "no-store" });
+      // Un corte de un segundo no deberia dejar al cliente sin calendario: se
+      // reintenta una vez antes de mostrar el error
+      let res = await fetch(`/api/agenda?tipo=${t}`, { cache: "no-store" }).catch(() => null);
+      if (!res?.ok) {
+        await new Promise((r) => setTimeout(r, 1500));
+        if (n !== consulta.current) return;
+        res = await fetch(`/api/agenda?tipo=${t}`, { cache: "no-store" });
+      }
       const json = await res.json().catch(() => null);
       if (n !== consulta.current) return;
       if (!res.ok || !json?.ok) {
@@ -356,6 +365,7 @@ export default function AgendarHora() {
   async function confirmar(e: React.FormEvent) {
     e.preventDefault();
     if (!tipo || !fecha || !hora || enviando) return;
+    setSinGuardar(false);
 
     const nombre = limpiarTexto(form.nombre, 80);
     const telefono = limpiarTexto(form.telefono, 20);
@@ -394,8 +404,10 @@ export default function AgendarHora() {
         return;
       }
       setError(json?.error || "No pudimos guardar tu hora. Intenta de nuevo.");
+      setSinGuardar(res.status >= 500);
     } catch {
       setError("No pudimos conectarnos. Revisa tu conexión e intenta de nuevo.");
+      setSinGuardar(true);
     } finally {
       setEnviando(false);
     }
@@ -790,6 +802,22 @@ export default function AgendarHora() {
             {error && (
               <p role="alert" className="text-[14px] font-medium" style={{ color: ROJO }}>
                 {error}
+                {sinGuardar && (
+                  <>
+                    {" "}
+                    <a
+                      href={`${WA_URL}?text=${encodeURIComponent(
+                        `Hola, quiero agendar ${regla(tipo).nombre.toLowerCase()} el ${fechaLarga(fecha)} a las ${hora}. Soy ${limpiarTexto(form.nombre, 80)}.`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-4 font-semibold"
+                      style={{ color: TINTA }}
+                    >
+                      O agéndala por WhatsApp
+                    </a>
+                  </>
+                )}
               </p>
             )}
 
