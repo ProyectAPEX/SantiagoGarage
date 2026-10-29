@@ -49,6 +49,10 @@ export type Cita = {
   comentario: string | null;
   /** Rutas de las fotos del daño en el espacio privado "citas" */
   fotos: string[];
+  /** Cuando salio el recordatorio por WhatsApp (null = todavia no) */
+  recordatorio: string | null;
+  /** Cuando el cliente toco "Confirmo" en el recordatorio */
+  asistencia_confirmada: string | null;
 };
 
 export type NuevaCita = Pick<
@@ -57,7 +61,7 @@ export type NuevaCita = Pick<
 >;
 
 const COLUMNAS =
-  "id, creada, tipo, fecha, hora, inicio, fin, estado, cancelada, nombre, telefono, email, marca, modelo, patente, aseguradora, siniestro, comentario, fotos";
+  "id, creada, tipo, fecha, hora, inicio, fin, estado, cancelada, nombre, telefono, email, marca, modelo, patente, aseguradora, siniestro, comentario, fotos, recordatorio, asistencia_confirmada";
 
 const ESPACIO_FOTOS = "citas";
 
@@ -298,6 +302,60 @@ export async function cancelarCita(id: string): Promise<Cita | null> {
     return null;
   }
   return (data ?? null) as unknown as Cita | null;
+}
+
+// ——— Recordatorio por WhatsApp ———
+
+export async function obtenerCita(id: string): Promise<Cita | null> {
+  const db = supabase();
+  if (!db || !ES_UUID.test(id)) return null;
+  const { data, error } = await db.from("citas").select(COLUMNAS).eq("id", id).maybeSingle();
+  if (error) console.error("[agenda] no se pudo leer la cita:", error.message);
+  return (data ?? null) as unknown as Cita | null;
+}
+
+/** Las horas confirmadas de un dia que todavia no reciben su recordatorio. */
+export async function citasSinRecordatorio(fecha: string): Promise<Cita[]> {
+  const db = supabase();
+  if (!db || !esFecha(fecha)) return [];
+  const { data, error } = await db
+    .from("citas")
+    .select(COLUMNAS)
+    .eq("fecha", fecha)
+    .eq("estado", "confirmada")
+    .is("recordatorio", null)
+    .order("inicio", { ascending: true })
+    .limit(200);
+  if (error) {
+    console.error("[agenda] no se pudieron leer las horas de mañana:", error.message);
+    return [];
+  }
+  return data as unknown as Cita[];
+}
+
+/** Anota que el recordatorio salio, con el id que le dio Meta. */
+export async function anotarRecordatorio(id: string, idMeta: string): Promise<void> {
+  const db = supabase();
+  if (!db) return;
+  const { error } = await db
+    .from("citas")
+    .update({ recordatorio: new Date().toISOString(), recordatorio_id: idMeta.slice(0, 200) })
+    .eq("id", id);
+  if (error) console.error("[agenda] no se pudo anotar el recordatorio:", error.message);
+}
+
+/** El cliente toco "Confirmo". Si ya lo habia tocado, queda la primera vez. */
+export async function confirmarAsistencia(id: string): Promise<boolean> {
+  const db = supabase();
+  if (!db || !ES_UUID.test(id)) return false;
+  const { error } = await db
+    .from("citas")
+    .update({ asistencia_confirmada: new Date().toISOString() })
+    .eq("id", id)
+    .eq("estado", "confirmada")
+    .is("asistencia_confirmada", null);
+  if (error) console.error("[agenda] no se pudo confirmar la asistencia:", error.message);
+  return !error;
 }
 
 export type Bloqueo = { fecha: string; motivo: string | null };

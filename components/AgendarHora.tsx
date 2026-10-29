@@ -230,6 +230,8 @@ export default function AgendarHora() {
   const [paso, setPaso] = useState<NumeroPaso>(1);
   const [tipo, setTipo] = useState<TipoCita | null>(null);
   const [dias, setDias] = useState<DiaAgenda[] | null>(null);
+  // Si el taller tiene conectado WhatsApp, llega un recordatorio el dia antes
+  const [conRecordatorio, setConRecordatorio] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [errorAgenda, setErrorAgenda] = useState("");
   const [mes, setMes] = useState("");
@@ -317,6 +319,7 @@ export default function AgendarHora() {
       }
       const lista = json.dias as DiaAgenda[];
       setDias(lista);
+      setConRecordatorio(json.recordatorio === true);
       const primero = lista.find((d) => d.horas.length) ?? lista[0];
       if (primero) setMes(primero.fecha.slice(0, 7));
     } catch {
@@ -685,6 +688,9 @@ export default function AgendarHora() {
               <div>
                 <label htmlFor="agenda-telefono" className={etiqueta}>Teléfono</label>
                 <input id="agenda-telefono" type="tel" className={campo} value={form.telefono} onChange={cambiar("telefono")} placeholder="+56 9 ..." maxLength={20} autoComplete="tel" required />
+                {conRecordatorio && (
+                  <span className="block text-[13px] mt-1.5" style={{ color: GRIS }}>El día antes te llega un recordatorio por WhatsApp.</span>
+                )}
               </div>
               <div>
                 <label htmlFor="agenda-email" className={etiqueta}>Correo</label>
@@ -796,7 +802,9 @@ export default function AgendarHora() {
               {enviando ? "Reservando..." : "Confirmar hora"}
             </button>
             <p className="text-[12px]" style={{ color: "#9CA3AF" }}>
-              Usamos tus datos solo para agendar y confirmar tu hora.
+              {conRecordatorio
+                ? "Usamos tus datos solo para agendar, confirmar y recordarte tu hora por correo y WhatsApp."
+                : "Usamos tus datos solo para agendar y confirmar tu hora."}
             </p>
           </form>
         )}

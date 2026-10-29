@@ -109,6 +109,12 @@ export default async function Agenda() {
                     <p className="font-display font-semibold text-[16px]" style={{ color: "#16181D" }}>
                       {c.nombre}
                     </p>
+                    {/* Lo que paso con el recordatorio por WhatsApp del dia antes */}
+                    {!cancelada && (c.asistencia_confirmada || c.recordatorio) && (
+                      <p className="font-display font-semibold text-[13px] mb-1" style={{ color: c.asistencia_confirmada ? "#1F8F4E" : "#6B7280" }}>
+                        {c.asistencia_confirmada ? "✓ Confirmó por WhatsApp" : "Recordatorio enviado, sin respuesta todavía"}
+                      </p>
+                    )}
                     {(auto || c.patente) && (
                       <p className="text-[14px]" style={{ color: "#4B5058" }}>
                         {[auto, c.patente].filter(Boolean).join(" · ")}

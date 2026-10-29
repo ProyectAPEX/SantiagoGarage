@@ -308,8 +308,12 @@ export async function avisarReserva(c: Cita, fotos: Uint8Array[] = []): Promise<
   return { cliente, taller };
 }
 
-/** Avisa la cancelacion y saca la hora de los dos calendarios (mismo uid, METHOD:CANCEL). */
-export async function avisarCancelacion(c: Cita): Promise<{ cliente: boolean; taller: boolean }> {
+/**
+ * Avisa la cancelacion y saca la hora de los dos calendarios (mismo uid,
+ * METHOD:CANCEL). `porCliente`: la cancelo el propio cliente desde el
+ * recordatorio de WhatsApp, y no el taller desde el panel.
+ */
+export async function avisarCancelacion(c: Cita, porCliente = false): Promise<{ cliente: boolean; taller: boolean }> {
   if (!correoConfigurado()) return { cliente: false, taller: false };
 
   const r = regla(c.tipo);
@@ -317,6 +321,7 @@ export async function avisarCancelacion(c: Cita): Promise<{ cliente: boolean; ta
   const logo = await logoAdjunto();
   const conLogo = Boolean(logo);
   const nombre = c.nombre.split(" ")[0] || c.nombre;
+  const quien = porCliente ? "La canceló el cliente desde el recordatorio de WhatsApp." : "Se le avisó al cliente.";
 
   const htmlCliente = marco(
     `<p style="font-size:16px;line-height:1.6;margin:0 0 14px">Hola ${escapar(nombre)},</p>
@@ -342,11 +347,11 @@ export async function avisarCancelacion(c: Cita): Promise<{ cliente: boolean; ta
     `<p style="font-size:13px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:#D0021B;margin:0 0 8px">Hora cancelada</p>
       <p style="font-size:16px;line-height:1.6;margin:0 0 16px">
         ${escapar(mayuscula(dia))} a las ${escapar(c.hora)} · ${escapar(r.nombre)} · ${escapar(c.nombre)}.
-        Se le avisó al cliente y la hora volvió a quedar libre en la web.
+        ${escapar(quien)} La hora volvió a quedar libre en la web.
       </p>`,
     conLogo
   );
-  const textoTaller = `Hora cancelada: ${dia} a las ${c.hora} · ${r.nombre} · ${c.nombre}. Se le avisó al cliente.`;
+  const textoTaller = `Hora cancelada: ${dia} a las ${c.hora} · ${r.nombre} · ${c.nombre}. ${quien}`;
 
   const [cliente, taller] = await Promise.all([
     enviar({

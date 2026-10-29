@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { esTipo, regla, fechaLarga, horaFin, MAX_FOTOS } from "@/lib/agenda";
 import { disponibilidad, validarCita, reservarCita, esFotoValida, guardarFotos } from "@/lib/citas";
 import { avisarReserva } from "@/lib/correo-agenda";
+import { whatsappConfigurado } from "@/lib/whatsapp";
 
 export const dynamic = "force-dynamic";
+// Guardar fotos y mandar los dos correos puede tardar unos segundos
+export const maxDuration = 30;
 
 /**
  * Vercel no acepta envios de mas de 4,5 MB. Las fotos llegan achicadas desde
@@ -23,7 +26,8 @@ export async function GET(req: NextRequest) {
 
   const dias = await disponibilidad(tipo);
   if (!dias) return NextResponse.json({ ok: false, error: SIN_AGENDA }, { status: 503 });
-  return NextResponse.json({ ok: true, dias }, { headers: { "Cache-Control": "no-store" } });
+  // recordatorio: si esta conectado WhatsApp, el formulario avisa que llegara uno
+  return NextResponse.json({ ok: true, dias, recordatorio: whatsappConfigurado() }, { headers: { "Cache-Control": "no-store" } });
 }
 
 /**

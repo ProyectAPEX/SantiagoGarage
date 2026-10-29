@@ -23,14 +23,21 @@ export const WA_URL = `https://wa.me/${TELEFONO_WHATSAPP}`;
 export const WA_COTIZAR = `${WA_URL}?text=${encodeURIComponent("Hola, quiero cotizar un servicio")}`;
 
 /**
- * Enlace de WhatsApp para el telefono de un cliente, como lo haya escrito:
- * "9 1234 5678" -> https://wa.me/56912345678. null si no parece un celular.
+ * El telefono de un cliente como lo usa WhatsApp, escriba como lo escriba:
+ * "+56 9 1234 5678", "9 1234 5678" o "12345678" -> "56912345678".
+ * null si no parece un celular.
  */
-export function enlaceWhatsApp(telefono: string): string | null {
+export function telefonoWhatsApp(telefono: string): string | null {
   let n = telefono.replace(/\D/g, "");
   if (n.length === 8) n = "569" + n;
   else if (n.length === 9 && n.startsWith("9")) n = "56" + n;
-  return n.length >= 10 ? `https://wa.me/${n}` : null;
+  return n.length >= 10 && n.length <= 15 ? n : null;
+}
+
+/** Enlace de WhatsApp para el telefono de un cliente. null si no parece un celular. */
+export function enlaceWhatsApp(telefono: string): string | null {
+  const n = telefonoWhatsApp(telefono);
+  return n ? `https://wa.me/${n}` : null;
 }
 
 /** Horario de atencion. Unico lugar donde se define: de aqui salen el pie,
