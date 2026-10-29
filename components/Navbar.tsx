@@ -3,16 +3,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
-import { TELEFONO_VISIBLE, TEL_URL, WA_COTIZAR } from "@/lib/site";
+import { TELEFONO_VISIBLE, TEL_URL } from "@/lib/site";
 import { abrirEntrada } from "./EntradaSecreta";
 
-// "Cotizar" abre WhatsApp con el mensaje ya escrito, como hacia el antiguo
-// formulario "Escribenos": llevar a Contacto parecia un boton que no hace nada
+// "Cotizar" lleva al formulario de cotizacion, al final de Contacto
 const links = [
-  { href: "/", label: "Inicio", externo: false },
-  { href: "/servicios", label: "Servicios", externo: false },
-  { href: WA_COTIZAR, label: "Cotizar", externo: true },
-  { href: "/contacto", label: "Contacto", externo: false },
+  { href: "/", label: "Inicio" },
+  { href: "/servicios", label: "Servicios" },
+  { href: "/contacto#cotizar", label: "Cotizar" },
+  { href: "/contacto", label: "Contacto" },
 ];
 
 function IconoTelefono() {
@@ -25,6 +24,21 @@ function IconoTelefono() {
 
 export default function Navbar() {
   const pathname = usePathname();
+
+  /**
+   * Un link con ancla (#cotizar) a la pagina en que ya se esta: si la
+   * direccion ya tenia ese ancla el navegador no se mueve, y el boton parece
+   * no funcionar. Aca se baja hasta el destino siempre.
+   */
+  function irAlAncla(e: React.MouseEvent, href: string) {
+    const [ruta, ancla] = href.split("#");
+    if (!ancla || ruta !== pathname) return; // otra pagina: Next navega y baja solo
+    const destino = document.getElementById(ancla);
+    if (!destino) return;
+    e.preventDefault();
+    destino.scrollIntoView({ behavior: "smooth", block: "start" });
+    history.replaceState(null, "", href);
+  }
   const [open, setOpen] = useState(false);
 
   // Entrada escondida del dueño: 5 toques seguidos al logo (menos de 2 s entre
@@ -64,7 +78,7 @@ export default function Navbar() {
                 <li key={l.label}>
                   <Link
                     href={l.href}
-                    {...(l.externo ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    onClick={(e) => irAlAncla(e, l.href)}
                     className="font-display text-[14px] font-medium transition-colors duration-200 pb-1"
                     style={{ color: activo ? "#16181D" : "#6B7280", borderBottom: activo ? "2px solid #D0021B" : "2px solid transparent" }}
                   >
@@ -115,8 +129,10 @@ export default function Navbar() {
             <li key={l.label}>
               <Link
                 href={l.href}
-                {...(l.externo ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                onClick={() => setOpen(false)}
+                onClick={(e) => {
+                  setOpen(false);
+                  irAlAncla(e, l.href);
+                }}
                 className="font-display text-[17px] font-medium block py-3"
                 style={{ color: pathname === l.href ? "#D0021B" : "#16181D" }}
               >

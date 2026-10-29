@@ -1,5 +1,6 @@
 "use client";
 import Reveal from "@/components/anim/Reveal";
+import FormularioContacto from "@/components/FormularioContacto";
 import { WA_URL, WA_COTIZAR, TELEFONO_VISIBLE, EMAIL_CONTACTO, HORARIO_VISIBLE } from "@/lib/site";
 
 export default function Contacto() {
@@ -111,6 +112,9 @@ export default function Contacto() {
 
         </div>
       </section>
+
+      {/* FORMULARIO DE COTIZACION: abre WhatsApp con todos los datos */}
+      <FormularioContacto />
     </>
   );
 }
